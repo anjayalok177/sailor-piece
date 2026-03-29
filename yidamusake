@@ -1,0 +1,755 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+local function createIntro()
+    local TS = game:GetService("TweenService")
+    local SS = game:GetService("SoundService")
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "Intro"
+    sg.ResetOnSpawn = false
+    sg.IgnoreGuiInset = true
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    sg.Parent = game:GetService("CoreGui")
+    local snd1 = Instance.new("Sound")
+    snd1.SoundId = "rbxassetid://9057675920"
+    snd1.Volume = 0.5
+    snd1.Parent = SS
+    local snd2 = Instance.new("Sound")
+    snd2.SoundId = "rbxassetid://112797079504478"
+    snd2.Volume = 0.6
+    snd2.Parent = SS
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.BackgroundColor3 = Color3.fromRGB(8,6,18)
+    bg.BackgroundTransparency = 1
+    bg.BorderSizePixel = 0
+    bg.Parent = sg
+    TS:Create(bg,TweenInfo.new(0.5,Enum.EasingStyle.Quad),{BackgroundTransparency=0}):Play()
+    local grad = Instance.new("UIGradient",bg)
+    grad.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0,Color3.fromRGB(22,12,42)),
+        ColorSequenceKeypoint.new(0.5,Color3.fromRGB(8,6,20)),
+        ColorSequenceKeypoint.new(1,Color3.fromRGB(38,18,58))
+    }
+    grad.Rotation = 45
+    task.spawn(function()
+        local r = 45
+        while bg.Parent do r=r+0.2; grad.Rotation=r; task.wait(0.03) end
+    end)
+    for i = 1,20 do
+        local p = Instance.new("Frame")
+        local sz = math.random(2,6)
+        p.Size = UDim2.new(0,sz,0,sz)
+        p.Position = UDim2.new(math.random(),0,math.random(),0)
+        p.BackgroundColor3 = Color3.fromHSV(math.random(265,295)/360,0.8,0.95)
+        p.BackgroundTransparency = math.random(45,80)/100
+        p.BorderSizePixel = 0
+        p.Parent = bg
+        Instance.new("UICorner",p).CornerRadius = UDim.new(1,0)
+        task.spawn(function()
+            while p.Parent do
+                TS:Create(p,TweenInfo.new(math.random(28,50)/10,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,0,true),{
+                    Position=UDim2.new(math.clamp(p.Position.X.Scale+math.random(-8,8)/100,0.02,0.98),0,math.clamp(p.Position.Y.Scale+math.random(-8,8)/100,0.02,0.98),0),
+                    BackgroundTransparency=math.random(20,65)/100
+                }):Play()
+                task.wait(math.random(28,50)/10)
+            end
+        end)
+    end
+    for i = 1,3 do
+        local ring = Instance.new("ImageLabel")
+        ring.Size = UDim2.new(0,70+i*55,0,70+i*55)
+        ring.Position = UDim2.new(0.5,0,0.42,0)
+        ring.AnchorPoint = Vector2.new(0.5,0.5)
+        ring.BackgroundTransparency = 1
+        ring.Image = "rbxassetid://5028857084"
+        ring.ImageColor3 = Color3.fromRGB(130,60,255)
+        ring.ImageTransparency = 1
+        ring.ZIndex = 2
+        ring.Parent = bg
+        task.spawn(function()
+            task.wait(0.7+i*0.12)
+            TS:Create(ring,TweenInfo.new(0.35,Enum.EasingStyle.Quad),{ImageTransparency=0.78}):Play()
+            task.wait(0.35)
+            while ring.Parent do
+                TS:Create(ring,TweenInfo.new(1.6,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,0,true),{
+                    Size=UDim2.new(0,90+i*65,0,90+i*65),
+                    ImageTransparency=0.58
+                }):Play()
+                task.wait(1.6)
+            end
+        end)
+    end
+    local img = Instance.new("ImageLabel")
+    img.Size = UDim2.new(0,200,0,200)
+    img.Position = UDim2.new(0.5,0,1.3,0)
+    img.AnchorPoint = Vector2.new(0.5,0.5)
+    img.BackgroundTransparency = 1
+    img.Image = "rbxassetid://110843044052526"
+    img.ScaleType = Enum.ScaleType.Fit
+    img.ImageTransparency = 0.5
+    img.ZIndex = 5
+    img.Parent = bg
+    Instance.new("UICorner",img).CornerRadius = UDim.new(0,20)
+    local glow = Instance.new("ImageLabel")
+    glow.Size = UDim2.new(1.5,0,1.5,0)
+    glow.Position = UDim2.new(0.5,0,0.5,0)
+    glow.AnchorPoint = Vector2.new(0.5,0.5)
+    glow.BackgroundTransparency = 1
+    glow.Image = "rbxassetid://5028857084"
+    glow.ImageColor3 = Color3.fromRGB(155,60,255)
+    glow.ImageTransparency = 1
+    glow.ZIndex = 4
+    glow.Parent = img
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(0,500,0,65)
+    title.Position = UDim2.new(0.5,0,0.74,0)
+    title.AnchorPoint = Vector2.new(0.5,0.5)
+    title.BackgroundTransparency = 1
+    title.Text = "YI DA MU SAKE"
+    title.TextColor3 = Color3.fromRGB(255,255,255)
+    title.TextSize = 46
+    title.Font = Enum.Font.GothamBold
+    title.TextTransparency = 1
+    title.TextStrokeTransparency = 1
+    title.TextStrokeColor3 = Color3.fromRGB(155,60,255)
+    title.ZIndex = 5
+    title.Parent = bg
+    local sub = Instance.new("TextLabel")
+    sub.Size = UDim2.new(0,400,0,24)
+    sub.Position = UDim2.new(0.5,0,0.82,0)
+    sub.AnchorPoint = Vector2.new(0.5,0.5)
+    sub.BackgroundTransparency = 1
+    sub.Text = "sailor piece"
+    sub.TextColor3 = Color3.fromRGB(165,110,255)
+    sub.TextSize = 16
+    sub.Font = Enum.Font.Gotham
+    sub.TextTransparency = 1
+    sub.ZIndex = 5
+    sub.Parent = bg
+    task.wait(0.3)
+    snd1:Play()
+    TS:Create(img,TweenInfo.new(2.6,Enum.EasingStyle.Elastic,Enum.EasingDirection.Out),{Position=UDim2.new(0.5,0,0.42,0),ImageTransparency=0}):Play()
+    TS:Create(glow,TweenInfo.new(1.0,Enum.EasingStyle.Quad),{ImageTransparency=0.45}):Play()
+    task.wait(1.3)
+    for i = 1,2 do
+        TS:Create(glow,TweenInfo.new(0.2,Enum.EasingStyle.Sine),{ImageTransparency=0.15}):Play()
+        task.wait(0.2)
+        TS:Create(glow,TweenInfo.new(0.2,Enum.EasingStyle.Sine),{ImageTransparency=0.5}):Play()
+        task.wait(0.2)
+    end
+    task.wait(0.3)
+    TS:Create(title,TweenInfo.new(0.7,Enum.EasingStyle.Quad),{TextTransparency=0,TextStrokeTransparency=0.45}):Play()
+    TS:Create(sub,TweenInfo.new(0.7,Enum.EasingStyle.Quad),{TextTransparency=0}):Play()
+    task.wait(1.5)
+    local gs = 6
+    local isz = 200
+    local psz = isz/gs
+    local pieces = {}
+    for row = 0,gs-1 do
+        for col = 0,gs-1 do
+            local pc = Instance.new("ImageLabel")
+            pc.Size = UDim2.new(0,psz,0,psz)
+            pc.Position = UDim2.new(0.5,(col*psz)-(isz/2),0.42,(row*psz)-(isz/2))
+            pc.AnchorPoint = Vector2.new(0,0)
+            pc.BackgroundTransparency = 1
+            pc.Image = "rbxassetid://110843044052526"
+            pc.ScaleType = Enum.ScaleType.Crop
+            pc.ZIndex = 6
+            pc.ImageRectSize = Vector2.new(420/gs,420/gs)
+            pc.ImageRectOffset = Vector2.new(col*420/gs,row*420/gs)
+            pc.Parent = bg
+            Instance.new("UICorner",pc).CornerRadius = UDim.new(0,math.random(2,5))
+            local cr = (gs-1)/2
+            table.insert(pieces,{p=pc,d=math.sqrt((row-cr)^2+(col-cr)^2)})
+        end
+    end
+    table.sort(pieces,function(a,b) return a.d>b.d end)
+    img.Visible = false
+    snd2:Play()
+    local flash = Instance.new("Frame")
+    flash.Size = UDim2.new(1,0,1,0)
+    flash.BackgroundColor3 = Color3.fromRGB(190,140,255)
+    flash.BackgroundTransparency = 1
+    flash.BorderSizePixel = 0
+    flash.ZIndex = 15
+    flash.Parent = bg
+    local fi = TS:Create(flash,TweenInfo.new(0.07),{BackgroundTransparency=0.12})
+    fi:Play()
+    fi.Completed:Connect(function()
+        TS:Create(flash,TweenInfo.new(0.5,Enum.EasingStyle.Quad),{BackgroundTransparency=1}):Play()
+    end)
+    for _,pd in ipairs(pieces) do
+        task.spawn(function()
+            task.wait(pd.d*0.04)
+            local pc = pd.p
+            local rad = math.rad(math.random(0,360))
+            local d = math.random(280,650)
+            TS:Create(pc,TweenInfo.new(1.7,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{
+                Position=UDim2.new(pc.Position.X.Scale,pc.Position.X.Offset+math.cos(rad)*d,pc.Position.Y.Scale,pc.Position.Y.Offset+math.sin(rad)*d+math.random(60,220)),
+                ImageTransparency=1,
+                Rotation=math.random(-400,400),
+                Size=UDim2.new(0,psz*0.18,0,psz*0.18)
+            }):Play()
+        end)
+    end
+    task.wait(1.9)
+    TS:Create(title,TweenInfo.new(0.5,Enum.EasingStyle.Quad),{TextTransparency=1,TextStrokeTransparency=1}):Play()
+    TS:Create(sub,TweenInfo.new(0.5,Enum.EasingStyle.Quad),{TextTransparency=1}):Play()
+    TS:Create(bg,TweenInfo.new(0.5,Enum.EasingStyle.Quad),{BackgroundTransparency=1}):Play()
+    task.wait(0.6)
+    snd1:Destroy()
+    snd2:Destroy()
+    sg:Destroy()
+end
+
+createIntro()
+
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+local ISLANDS = {
+    ["Starter Island"] = {
+        coords = {
+            Vector3.new(194.943,16.207,-171.994),
+            Vector3.new(164.245,16.207,-176.308),
+            Vector3.new(159.530,16.207,-142.758),
+            Vector3.new(177.723,16.207,-157.247),
+            Vector3.new(189.238,16.207,-138.583),
+        },
+        center = 4,
+    },
+    ["Jungle Island"] = {
+        coords = {
+            Vector3.new(-566.029,4.125,425.000),
+            Vector3.new(-567.759,4.125,399.303),
+            Vector3.new(-585.790,3.359,397.131),
+            Vector3.new(-575.712,3.359,381.006),
+            Vector3.new(-549.771,4.125,395.209),
+        },
+        center = 2,
+    },
+    ["Desert Island"] = {
+        coords = {
+            Vector3.new(-774.852,0.777,-405.228),
+            Vector3.new(-793.225,0.777,-433.599),
+            Vector3.new(-768.626,0.777,-452.058),
+            Vector3.new(-815.452,0.777,-417.817),
+            Vector3.new(-808.365,0.777,-457.034),
+        },
+        center = 2,
+    },
+    ["Snow Island"] = {
+        coords = {
+            Vector3.new(-423.471,3.861,-968.619),
+            Vector3.new(-436.772,3.859,-998.843),
+            Vector3.new(-410.853,3.861,-990.573),
+            Vector3.new(-402.983,3.861,-1014.348),
+            Vector3.new(-385.389,3.861,-981.637),
+        },
+        center = 3,
+    },
+    ["Shibuya"] = {
+        coords = {
+            Vector3.new(1407.890,13.486,522.877),
+            Vector3.new(1435.052,13.839,480.898),
+            Vector3.new(1398.259,13.486,488.059),
+            Vector3.new(1362.940,13.486,493.791),
+            Vector3.new(1390.117,13.486,451.823),
+        },
+        center = 3,
+    },
+    ["Hollow"] = {
+        coords = {
+            Vector3.new(-341.802,4.559,1091.144),
+            Vector3.new(-365.126,4.559,1097.683),
+            Vector3.new(-358.324,4.559,1078.029),
+            Vector3.new(-385.284,5.201,1082.955),
+            Vector3.new(-383.171,4.559,1110.780),
+        },
+        center = 1,
+    },
+    ["Curse"] = {
+        coords = {
+            Vector3.new(-41.327,6.882,-1816.006),
+            Vector3.new(4.006,6.882,-1864.215),
+            Vector3.new(-18.396,6.882,-1845.568),
+            Vector3.new(-3.303,6.882,-1810.042),
+            Vector3.new(-26.960,6.882,-1875.933),
+        },
+        center = 3,
+    },
+}
+local ISLAND_ORDER = {"Starter Island","Jungle Island","Desert Island","Snow Island","Shibuya","Hollow","Curse"}
+
+local function getRoot()
+    character = player.Character
+    if not character then return nil end
+    return character:FindFirstChild("HumanoidRootPart")
+end
+
+local function fireSettings(key,val)
+    pcall(function()
+        ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("SettingsToggle"):FireServer(key,val)
+    end)
+end
+
+local function enableGameSettings()
+    fireSettings("EnableQuestRepeat",true)
+    fireSettings("AutoQuestRepeat",true)
+    fireSettings("DisablePVP",true)
+end
+
+local function disableGameSettings()
+    fireSettings("EnableQuestRepeat",false)
+    fireSettings("AutoQuestRepeat",false)
+    fireSettings("DisablePVP",false)
+end
+
+local flyBP,flyBG = nil,nil
+
+local function enableFly()
+    character = player.Character
+    if not character then return end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    local hum = character:FindFirstChildOfClass("Humanoid")
+    if not root or not hum then return end
+    hum.PlatformStand = true
+    if flyBP then flyBP:Destroy() end
+    if flyBG then flyBG:Destroy() end
+    flyBP = Instance.new("BodyPosition")
+    flyBP.MaxForce = Vector3.new(1e5,1e5,1e5)
+    flyBP.D = 500
+    flyBP.P = 5000
+    flyBP.Position = root.Position
+    flyBP.Parent = root
+    flyBG = Instance.new("BodyGyro")
+    flyBG.MaxTorque = Vector3.new(1e5,1e5,1e5)
+    flyBG.D = 400
+    flyBG.CFrame = root.CFrame
+    flyBG.Parent = root
+end
+
+local function disableFly()
+    if flyBP then flyBP:Destroy() flyBP=nil end
+    if flyBG then flyBG:Destroy() flyBG=nil end
+    character = player.Character
+    if not character then return end
+    local hum = character:FindFirstChildOfClass("Humanoid")
+    if hum then hum.PlatformStand = false end
+end
+
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    if _G.islandFarmOn then task.wait(1) enableFly() end
+end)
+
+local function moveToPosition(targetPos,speed)
+    local root = getRoot()
+    if not root then return end
+    local dist = (root.Position - targetPos).Magnitude
+    if dist > 100 then
+        local dur = math.max(0.3,dist/(speed or 150))
+        if flyBP then flyBP.Position = targetPos end
+        local tw = TweenService:Create(root,TweenInfo.new(dur,Enum.EasingStyle.Linear),{CFrame=CFrame.new(targetPos)})
+        tw:Play()
+        tw.Completed:Wait()
+    else
+        root.CFrame = CFrame.new(targetPos)
+        if flyBP then flyBP.Position = targetPos end
+    end
+end
+
+local autoClickOn = false
+
+local function startClick(ms)
+    autoClickOn = true
+    task.spawn(function()
+        local vim = game:GetService("VirtualInputManager")
+        while autoClickOn do
+            pcall(function()
+                vim:SendMouseButtonEvent(0,0,0,true,game,0)
+                task.wait(0.02)
+                vim:SendMouseButtonEvent(0,0,0,false,game,0)
+            end)
+            task.wait((ms or 100)/1000)
+        end
+        pcall(function()
+            vim:SendGamepadButtonEvent(0,Enum.KeyCode.ButtonL3,false,game)
+            vim:SendGamepadButtonEvent(0,Enum.KeyCode.Thumbstick1,false,game)
+            vim:SendGamepadButtonEvent(0,Enum.KeyCode.Thumbstick2,false,game)
+        end)
+    end)
+end
+
+local function stopClick()
+    autoClickOn = false
+end
+
+local QUEST_COUNT = 19
+
+local function findNearestQuestNPC(radius)
+    local root = getRoot()
+    if not root then return nil,nil end
+    local folder = workspace:FindFirstChild("ServiceNPCs")
+    if not folder then return nil,nil end
+    local best,bestDist,bestName = nil,math.huge,nil
+    for i = 1,QUEST_COUNT do
+        local name = "QuestNPC"..i
+        local npc = folder:FindFirstChild(name)
+        if npc then
+            local pos
+            if npc:IsA("Model") then
+                local pp = npc.PrimaryPart or npc:FindFirstChildWhichIsA("BasePart")
+                if pp then pos = pp.Position end
+            elseif npc:IsA("BasePart") then
+                pos = npc.Position
+            end
+            if pos then
+                local d = (root.Position - pos).Magnitude
+                if d <= radius and d < bestDist then
+                    bestDist=d; best=npc; bestName=name
+                end
+            end
+        end
+    end
+    return best,bestName
+end
+
+local function fireQuestAccept(name)
+    pcall(function()
+        ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("QuestAccept"):FireServer(name)
+    end)
+end
+
+local islandSelected = ISLAND_ORDER[1]
+local heightOffset = 0
+local tweenSpeed = 150
+local teleportDelay = 1
+local loopDelay = 3
+local farmV1On = false
+local farmV2On = false
+local isRunningV1 = false
+local isRunningV2 = false
+_G.islandFarmOn = false
+
+local questRadius = 50
+local questOn = false
+local lastFiredNPC = nil
+
+local hitInterval = 100
+local hitOn = false
+
+local Window = Rayfield:CreateWindow({
+    Name = "Yi Da Mu Sake",
+    Icon = 0,
+    LoadingTitle = "Yi Da Mu Sake",
+    LoadingSubtitle = "sailor piece",
+    Theme = "Default",
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
+})
+
+local TabFarm  = Window:CreateTab("Auto Farm",  4483362458)
+local TabQuest = Window:CreateTab("Auto Quest", 4483362458)
+local TabHit   = Window:CreateTab("Auto Hit",   4483362458)
+local TabInfo  = Window:CreateTab("Info",       4483362458)
+
+TabFarm:CreateSection("Island")
+
+TabFarm:CreateDropdown({
+    Name = "Pilih Pulau",
+    Options = ISLAND_ORDER,
+    CurrentOption = {ISLAND_ORDER[1]},
+    MultipleOptions = false,
+    Flag = "IslandSelect",
+    Callback = function(opt)
+        islandSelected = type(opt)=="table" and opt[1] or opt
+    end,
+})
+
+TabFarm:CreateSection("Movement")
+
+TabFarm:CreateSlider({
+    Name = "Height Offset",
+    Range = {0,50},
+    Increment = 1,
+    Suffix = " studs",
+    CurrentValue = 0,
+    Flag = "HeightOffset",
+    Callback = function(v) heightOffset = v end,
+})
+
+TabFarm:CreateSlider({
+    Name = "Tween Speed",
+    Range = {20,500},
+    Increment = 5,
+    Suffix = " st/s",
+    CurrentValue = 150,
+    Flag = "TweenSpeed",
+    Callback = function(v) tweenSpeed = v end,
+})
+
+TabFarm:CreateSlider({
+    Name = "Jeda per Titik",
+    Range = {1,10},
+    Increment = 1,
+    Suffix = "s",
+    CurrentValue = 1,
+    Flag = "TeleportDelay",
+    Callback = function(v) teleportDelay = v end,
+})
+
+TabFarm:CreateSlider({
+    Name = "Loop Delay",
+    Range = {0,10},
+    Increment = 1,
+    Suffix = "s",
+    CurrentValue = 3,
+    Flag = "LoopDelay",
+    Callback = function(v) loopDelay = v end,
+})
+
+TabFarm:CreateSection("Controls")
+
+local farmStatusLabel = TabFarm:CreateLabel("Status: Idle")
+local farmPhaseLabel  = TabFarm:CreateLabel("Phase: --")
+
+TabFarm:CreateToggle({
+    Name = "Auto Farm V1 (Semua Titik)",
+    CurrentValue = false,
+    Flag = "AutoFarmV1",
+    Callback = function(v)
+        farmV1On = v
+        if v then
+            farmV2On = false
+            Rayfield:Notify({Title="Auto Farm V1",Content="Dimulai: "..islandSelected,Duration=3})
+        else
+            disableFly()
+            disableGameSettings()
+            farmStatusLabel:Set("Status: Idle")
+            farmPhaseLabel:Set("Phase: --")
+        end
+    end,
+})
+
+TabFarm:CreateToggle({
+    Name = "Auto Farm V2 (Titik Tengah)",
+    CurrentValue = false,
+    Flag = "AutoFarmV2",
+    Callback = function(v)
+        farmV2On = v
+        if v then
+            farmV1On = false
+            Rayfield:Notify({Title="Auto Farm V2",Content="Titik tengah: "..islandSelected,Duration=3})
+        else
+            disableFly()
+            disableGameSettings()
+            farmStatusLabel:Set("Status: Idle")
+            farmPhaseLabel:Set("Phase: --")
+        end
+    end,
+})
+
+TabQuest:CreateSection("Detection")
+
+TabQuest:CreateSlider({
+    Name = "Radius Deteksi",
+    Range = {10,200},
+    Increment = 5,
+    Suffix = " studs",
+    CurrentValue = 50,
+    Flag = "QuestRadius",
+    Callback = function(v) questRadius = v end,
+})
+
+TabQuest:CreateSection("Status")
+
+local questNPCLabel  = TabQuest:CreateLabel("NPC: --")
+local questLastLabel = TabQuest:CreateLabel("Last: --")
+
+TabQuest:CreateSection("Control")
+
+TabQuest:CreateToggle({
+    Name = "Enable Auto Quest",
+    CurrentValue = false,
+    Flag = "AutoQuest",
+    Callback = function(v)
+        questOn = v
+        if not v then
+            lastFiredNPC = nil
+            questNPCLabel:Set("NPC: --")
+        end
+    end,
+})
+
+TabHit:CreateSection("Settings")
+
+TabHit:CreateSlider({
+    Name = "Interval",
+    Range = {50,1000},
+    Increment = 50,
+    Suffix = "ms",
+    CurrentValue = 100,
+    Flag = "HitInterval",
+    Callback = function(v)
+        hitInterval = v
+        if hitOn then
+            stopClick()
+            task.wait(0.05)
+            startClick(v)
+        end
+    end,
+})
+
+TabHit:CreateSection("Control")
+
+local hitStatusLabel = TabHit:CreateLabel("Status: Idle")
+
+TabHit:CreateToggle({
+    Name = "Enable Auto Hit",
+    CurrentValue = false,
+    Flag = "AutoHit",
+    Callback = function(v)
+        hitOn = v
+        if v then
+            startClick(hitInterval)
+            hitStatusLabel:Set("Status: Running")
+        else
+            stopClick()
+            hitStatusLabel:Set("Status: Idle")
+        end
+    end,
+})
+
+TabInfo:CreateSection("Script")
+TabInfo:CreateLabel("Name: Yi Da Mu Sake")
+TabInfo:CreateLabel("Version: sailor piece")
+TabInfo:CreateLabel("UI: Rayfield")
+
+TabInfo:CreateSection("Farm")
+TabInfo:CreateLabel("V1: Keliling semua 5 titik")
+TabInfo:CreateLabel("V2: Menetap di titik tengah")
+TabInfo:CreateLabel("Jarak lebih dari 100 stud = Tween")
+TabInfo:CreateLabel("Jarak kurang dari 100 stud = Teleport")
+
+TabInfo:CreateSection("Quest")
+TabInfo:CreateLabel("Scan QuestNPC1 sampai QuestNPC19")
+TabInfo:CreateLabel("Fire sekali per NPC baru")
+
+TabInfo:CreateSection("Hit")
+TabInfo:CreateLabel("Method: VirtualInputManager")
+TabInfo:CreateLabel("Analog kembali saat dimatikan")
+
+local function farmLoopV1()
+    isRunningV1 = true
+    _G.islandFarmOn = true
+    enableFly()
+    enableGameSettings()
+    while farmV1On do
+        local data = ISLANDS[islandSelected]
+        if not data then task.wait(0.5) continue end
+        local coords = data.coords
+        for i,pos in ipairs(coords) do
+            if not farmV1On then break end
+            local finalPos = Vector3.new(pos.X,pos.Y+heightOffset,pos.Z)
+            local root = getRoot()
+            local dist = root and (root.Position-finalPos).Magnitude or 0
+            farmPhaseLabel:Set((dist>100 and "Tween" or "Teleport").." ["..i.."/"..#coords.."]")
+            farmStatusLabel:Set(islandSelected)
+            moveToPosition(finalPos,tweenSpeed)
+            task.wait(teleportDelay)
+        end
+        if not farmV1On then break end
+        if loopDelay > 0 then
+            local endT = tick()+loopDelay
+            while tick()<endT and farmV1On do
+                farmPhaseLabel:Set("Cooldown "..math.ceil(endT-tick()).."s")
+                task.wait(0.1)
+            end
+        end
+    end
+    disableFly()
+    disableGameSettings()
+    farmStatusLabel:Set("Status: Idle")
+    farmPhaseLabel:Set("Phase: --")
+    _G.islandFarmOn = false
+    isRunningV1 = false
+end
+
+local function farmLoopV2()
+    isRunningV2 = true
+    _G.islandFarmOn = true
+    enableFly()
+    enableGameSettings()
+    while farmV2On do
+        local data = ISLANDS[islandSelected]
+        if not data then task.wait(0.5) continue end
+        local ci = data.center
+        local cpos = data.coords[ci]
+        local finalPos = Vector3.new(cpos.X,cpos.Y+heightOffset,cpos.Z)
+        local root = getRoot()
+        local dist = root and (root.Position-finalPos).Magnitude or 0
+        farmStatusLabel:Set(islandSelected.." [center:"..ci.."]")
+        farmPhaseLabel:Set(dist>100 and "Tween ke tengah" or "Menetap di tengah")
+        moveToPosition(finalPos,tweenSpeed)
+        if loopDelay > 0 then
+            local endT = tick()+loopDelay
+            while tick()<endT and farmV2On do
+                farmPhaseLabel:Set("Re-check "..math.ceil(endT-tick()).."s")
+                task.wait(0.1)
+            end
+        else
+            task.wait(0.5)
+        end
+    end
+    disableFly()
+    disableGameSettings()
+    farmStatusLabel:Set("Status: Idle")
+    farmPhaseLabel:Set("Phase: --")
+    _G.islandFarmOn = false
+    isRunningV2 = false
+end
+
+task.spawn(function()
+    local pV1,pV2 = false,false
+    while task.wait(0.2) do
+        if farmV1On and not pV1 then
+            if not isRunningV1 then task.spawn(farmLoopV1) end
+        end
+        if farmV2On and not pV2 then
+            if not isRunningV2 then task.spawn(farmLoopV2) end
+        end
+        pV1 = farmV1On
+        pV2 = farmV2On
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.35) do
+        if not questOn then continue end
+        local _,name = findNearestQuestNPC(questRadius)
+        if name then
+            questNPCLabel:Set("NPC: "..name)
+            if name ~= lastFiredNPC then
+                fireQuestAccept(name)
+                fireSettings("EnableQuestRepeat",true)
+                fireSettings("AutoQuestRepeat",true)
+                fireSettings("DisablePVP",true)
+                lastFiredNPC = name
+                questLastLabel:Set("Last: "..name)
+            end
+        else
+            questNPCLabel:Set("NPC: --")
+        end
+    end
+end)
+
+Rayfield:Notify({
+    Title = "Yi Da Mu Sake",
+    Content = "Loaded - sailor piece",
+    Duration = 4,
+})
