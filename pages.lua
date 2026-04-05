@@ -33,32 +33,26 @@ local function detectBosses()
     return list
 end
 
--- Parse timer text "1:23" → total seconds
+-- FIX: Scan semua TextLabel descendant di container
+-- Cari yang textnya format "M:SS" (waktu countdown)
+local function findTimerTextLabel(container)
+    for _,desc in ipairs(container:GetDescendants()) do
+        if desc:IsA("TextLabel") then
+            local txt = desc.Text or ""
+            -- match format "1:23" atau "12:34"
+            if txt:match("^%d+:%d%d$") then
+                return desc
+            end
+        end
+    end
+    return nil
+end
+
 local function parseTimerSecs(text)
     if not text or text=="" then return -1 end
     local m,s=text:match("(%d+):(%d+)")
     if m and s then return tonumber(m)*60+tonumber(s) end
     return -1
-end
-
--- Navigate to Timer TextLabel inside a TimedBossSpawn container
-local function getTimerLabel(container)
-    -- container → child starting with "TimedBossSpawn_" → BossTimerBillboard → Frame → Timer
-    for _,child in ipairs(container:GetChildren()) do
-        if child.Name:sub(1,17)=="TimedBossSpawn_" then
-            local bb=child:FindFirstChild("BossTimerBillboard")
-            if bb then
-                local frame=bb:FindFirstChild("Frame")
-                if frame then
-                    local timer=frame:FindFirstChild("Timer")
-                    if timer and timer:IsA("TextLabel") then
-                        return timer
-                    end
-                end
-            end
-        end
-    end
-    return nil
 end
 
 return function(lib, sideData, contentArea, bgF, root, rootCorner,
@@ -82,12 +76,10 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
 
     -- ════════════════════════════════
     -- PAGE: INFO — Boss Countdown Timers
-    -- Reads TimedBossSpawn_X_Container → TimedBossSpawn_X → BossTimerBillboard → Frame → Timer.Text
     -- ════════════════════════════════
     local infoSF=mkScrollPage(sideData["Info"].page)
     mkSection(infoSF,"Boss Countdown",1)
 
-    -- Refresh button
     local infoRefreshBtn=Instance.new("TextButton",infoSF)
     infoRefreshBtn.Size=UDim2.new(1,0,0,32)
     infoRefreshBtn.BackgroundColor3=Color3.fromRGB(24,20,40)
@@ -107,7 +99,7 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     local tcL=Instance.new("UIListLayout",timerContainer)
     tcL.Padding=UDim.new(0,5); tcL.SortOrder=Enum.SortOrder.LayoutOrder
 
-    -- Each entry: {timerLabel = TextLabel ref, dispTimer = TextLabel in card, dispStatus = TextLabel}
+    -- {timerLbl=TextLabel ref, dispTimer=TextLabel, dispStatus=TextLabel, cardStroke=UIStroke}
     local timerEntries={}
 
     local function buildTimerCards()
@@ -116,11 +108,14 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
         end
         timerEntries={}
         local found=0
+
         for _,child in ipairs(workspace:GetChildren()) do
             local bossName=child.Name:match("^TimedBossSpawn_(.+)_Container$")
             if bossName then
                 found=found+1
-                local timerLbl=getTimerLabel(child)  -- TextLabel with .Text = "1:23"
+
+                -- FIX: scan semua descendant TextLabel cari format "M:SS"
+                local timerLbl=findTimerTextLabel(child)
 
                 local card=Instance.new("Frame",timerContainer)
                 card.Size=UDim2.new(1,0,0,54)
@@ -138,22 +133,29 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
 
                 local dispTimer=Instance.new("TextLabel",card)
                 dispTimer.Size=UDim2.new(0.4,-12,0,22); dispTimer.Position=UDim2.new(0.6,0,0,6)
-                dispTimer.BackgroundTransparency=1; dispTimer.Text="..."
+                dispTimer.BackgroundTransparency=1
+                dispTimer.Text=timerLbl and timerLbl.Text or "Mencari..."
                 dispTimer.TextColor3=T.accentGlow; dispTimer.Font=Enum.Font.GothamBold
                 dispTimer.TextSize=13; dispTimer.TextXAlignment=Enum.TextXAlignment.Right; dispTimer.ZIndex=6
 
                 local dispStatus=Instance.new("TextLabel",card)
                 dispStatus.Size=UDim2.new(1,-24,0,14); dispStatus.Position=UDim2.new(0,12,0,34)
-                dispStatus.BackgroundTransparency=1; dispStatus.Text="Mencari data..."
-                dispStatus.TextColor3=T.textDim; dispStatus.Font=Enum.Font.Gotham
+                dispStatus.BackgroundTransparency=1
+                dispStatus.Text=timerLbl and "Timer ditemukan" or "Timer TextLabel tidak ditemukan"
+                dispStatus.TextColor3=timerLbl and T.textDim or T.red
+                dispStatus.Font=Enum.Font.Gotham
                 dispStatus.TextSize=9; dispStatus.TextXAlignment=Enum.TextXAlignment.Left; dispStatus.ZIndex=6
 
                 table.insert(timerEntries,{
-                    timerLbl=timerLbl, dispTimer=dispTimer,
-                    dispStatus=dispStatus, cardStroke=cs
+                    container=child,
+                    timerLbl=timerLbl,
+                    dispTimer=dispTimer,
+                    dispStatus=dispStatus,
+                    cardStroke=cs,
                 })
             end
         end
+
         if found==0 then
             local el=Instance.new("TextLabel",timerContainer)
             el.Size=UDim2.new(1,0,0,34); el.BackgroundTransparency=1
@@ -169,22 +171,36 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
         buildTimerCards()
     end)
 
-    -- Live update timer every second — reads .Text directly from the game's TextLabel
+    -- Live update: setiap 1 detik baca .Text langsung dari TextLabel game
     task.spawn(function()
         while infoSF and infoSF.Parent do
             for _,e in ipairs(timerEntries) do
                 pcall(function()
+                    -- Jika timerLbl belum ditemukan saat build, coba lagi
                     if not e.timerLbl or not e.timerLbl.Parent then
-                        e.dispTimer.Text="N/A"
-                        e.dispTimer.TextColor3=T.textDim
-                        e.dispStatus.Text="Container tidak aktif"
-                        smooth(e.cardStroke,{Color=T.border},0.3):Play()
-                        return
+                        local found=findTimerTextLabel(e.container)
+                        if found then
+                            e.timerLbl=found
+                            e.dispStatus.Text="Timer ditemukan"
+                            e.dispStatus.TextColor3=T.textDim
+                        else
+                            e.dispTimer.Text="?"
+                            e.dispTimer.TextColor3=T.textDim
+                            e.dispStatus.Text="Belum ada timer — coba refresh"
+                            e.dispStatus.TextColor3=T.red
+                            return
+                        end
                     end
-                    local txt=e.timerLbl.Text
-                    e.dispTimer.Text=txt
+
+                    local txt=e.timerLbl.Text or ""
+                    e.dispTimer.Text=(txt~="" and txt or "?")
+
                     local secs=parseTimerSecs(txt)
-                    if secs<=0 then
+                    if secs<0 then
+                        e.dispTimer.TextColor3=T.textDim
+                        e.dispStatus.Text="Format tidak dikenali: "..txt
+                        smooth(e.cardStroke,{Color=T.border},0.3):Play()
+                    elseif secs==0 then
                         e.dispTimer.TextColor3=T.green
                         e.dispStatus.Text="⚡ Boss sedang spawn!"
                         smooth(e.cardStroke,{Color=T.green},0.3):Play()
@@ -204,7 +220,7 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     end)
 
     -- ════════════════════════════════
-    -- PAGE: MAIN (5 sub-tabs — no Quest)
+    -- PAGE: MAIN (5 sub-tabs)
     -- ════════════════════════════════
     local mainPage=sideData["Main"].page
     local mainInner=Instance.new("Frame",mainPage)
@@ -216,12 +232,11 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     -- ── FARM ─────────────────────────────────────────────
     local farmSF=subPages["Farm"]
 
-    -- Group: Status + Select + Control (1 border)
     local farmGroup=mkGroupBox(farmSF,1)
     mkSectionLabel(farmGroup,"Status",1)
     local _,setFarmStat  =mkStatus(farmGroup,"Status","Idle",2)
     local _,setFarmPhase =mkStatus(farmGroup,"Phase","--",3)
-    local _,setFarmNPC   =mkStatus(farmGroup,"NPC","--",4)   -- auto quest status
+    local _,setFarmNPC   =mkStatus(farmGroup,"Quest","--",4)
     mkSectionLabel(farmGroup,"Pulau & Mode",5)
     local _,getIsland=mkDropdownV2(
         farmGroup,"Pulau","⚓",Color3.fromRGB(78,46,200),
@@ -233,17 +248,15 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     local farmOnOffBtn,setFarmOnOff,getFarmOn,setFarmCallback=
         mkOnOffBtn(farmGroup,"Auto Farm + Quest",8)
 
-    -- Adjust sliders (outside group)
     mkSection(farmSF,"Adjust",2)
     local _,setHeight,getHeight=mkSlider(farmSF,"Height Offset",0,50,0," studs",nil,3)
     local _,setSpeed, getSpeed =mkSlider(farmSF,"Tween Speed",20,500,150," st/s",nil,4)
     local _,setTD,    getTD    =mkSlider(farmSF,"Jeda Titik",1,10,1,"s",nil,5)
     local _,setLD,    getLD    =mkSlider(farmSF,"Loop Delay",0,10,3,"s",nil,6)
 
-    -- Auto Skill section (group with 4 toggles Z/X/C/V)
     mkSection(farmSF,"Auto Skill",7)
     local skillGroup=mkGroupBox(farmSF,8)
-    mkSectionLabel(skillGroup,"Toggle per Skill (arg = Z:1 X:2 C:3 V:4)",1)
+    mkSectionLabel(skillGroup,"Toggle per Skill",1)
     local skillOn={Z=false,X=false,C=false,V=false}
     mkToggle(skillGroup,"Auto Z Skill  (arg 1)",false,function(v) skillOn.Z=v end,2)
     mkToggle(skillGroup,"Auto X Skill  (arg 2)",false,function(v) skillOn.X=v end,3)
@@ -255,7 +268,7 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     local hitGroup=mkGroupBox(hitSF,1)
     mkSectionLabel(hitGroup,"Status",1)
     local _,setHitStat=mkStatus(hitGroup,"Status","Idle",2)
-    local _,setHitRate=mkStatus(hitGroup,"Remote","RequestHit",3)
+    local _,setHitRate=mkStatus(hitGroup,"Rate","0/s",3)
     mkSectionLabel(hitGroup,"Control",4)
     local hitOnOffBtn,setHitOnOff,getHitOn,setHitCallback=
         mkOnOffBtn(hitGroup,"Auto Hit (RequestHit)",5)
@@ -448,7 +461,7 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     mkSection(dungeonSF,"Info",3)
     mkStatus(dungeonSF,"Remote","RequestHit + Ability 1-3",4)
     mkStatus(dungeonSF,"Tween","Ke semua NPC (1s/NPC)",5)
-    mkStatus(dungeonSF,"Spin","360° HRP setiap 2s",6)
+    mkStatus(dungeonSF,"Spin","360° HRP setiap 0.5s",6)
 
     -- ════════════════════════════════
     -- PAGE: SETTINGS
@@ -465,66 +478,42 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     mkSlider(settingsSF,"Corner Radius",6,24,14,"px",function(v)
         rootCorner.CornerRadius=UDim.new(0,v)
     end,4)
-
     mkSection(settingsSF,"Font",5)
-    mkSlider(settingsSF,"Font Size",8,18,12,"px",function(v)
-        lib.applyFontSize(v)
-    end,6)
-
+    mkSlider(settingsSF,"Font Size",8,18,12,"px",function(v) lib.applyFontSize(v) end,6)
     mkSection(settingsSF,"Accent Color",7)
     mkDropdownV2(settingsSF,"Accent","🎨",Color3.fromRGB(118,68,255),
-        {"Purple","Blue","Cyan","Green","Red"},"Purple",function(v)
-            lib.applyAccent(v)
-        end,8)
-
+        {"Purple","Blue","Cyan","Green","Red"},"Purple",function(v) lib.applyAccent(v) end,8)
     mkSection(settingsSF,"Particles",9)
     mkToggle(settingsSF,"Enable Particles",true,function(v)
         UISettings.particles=v
-        for _,p in ipairs(particleList) do
-            if p and p.Parent then p.Visible=v end
-        end
+        for _,p in ipairs(particleList) do if p and p.Parent then p.Visible=v end end
     end,10)
     mkSlider(settingsSF,"Jumlah Partikel",5,80,26,"",function(v)
         UISettings.particleCount=v; spawnParticles(v)
     end,11)
-
     mkSection(settingsSF,"UI Background",12)
     mkDropdownV2(settingsSF,"Mode BG Window","◈",Color3.fromRGB(80,80,180),
-        {"Solid","Transparent","Blur"},"Solid",function(v)
-            applyUIBgMode(v)
-        end,13)
-
+        {"Solid","Transparent","Blur"},"Solid",function(v) applyUIBgMode(v) end,13)
     mkSection(settingsSF,"Minimize Bar",14)
     mkDropdownV2(settingsSF,"Mode BG Minimize","◉",Color3.fromRGB(60,120,200),
-        {"Solid","Transparent","Blur"},"Solid",function(v)
-            applyMiniBgMode(v)
-        end,15)
-
+        {"Solid","Transparent","Blur"},"Solid",function(v) applyMiniBgMode(v) end,15)
     mkSection(settingsSF,"Effects",16)
     mkToggle(settingsSF,"Window Glow",true,function(v)
         UISettings.glow=v
         lib.smooth(rootGlow,{ImageTransparency=v and 0.85 or 1},0.3):Play()
     end,17)
 
-    -- ════════════════════════════════
-    -- RETURN REFS
-    -- ════════════════════════════════
     return {
-        -- Farm
         getIsland=getIsland, getFarmMode=getFarmMode,
         getHeight=getHeight, getSpeed=getSpeed, getTD=getTD, getLD=getLD,
         setFarmStat=setFarmStat, setFarmPhase=setFarmPhase, setFarmNPC=setFarmNPC,
         setFarmOnOff=setFarmOnOff, getFarmOn=getFarmOn, setFarmCallback=setFarmCallback,
-        -- Skill
         getSkillOn=function(k) return skillOn[k] end,
-        -- Hit
         setHitStat=setHitStat, setHitRate=setHitRate,
         setHitOnOff=setHitOnOff, getHitOn=getHitOn, setHitCallback=setHitCallback,
-        -- Boss
         getSelectedBoss=function() return selectedBoss end,
         setBossStat=setBossStat, setBossTarget=setBossTarget, setBossPhase=setBossPhase,
         setBossOnOff=setBossOnOff, getBossOn=getBossOn, setBossCallback=setBossCallback,
-        -- Dungeon
         setDungeonStat=setDungeonStat, setDungeonNPC=setDungeonNPC, setDungeonHit=setDungeonHit,
         setDungeonOnOff=setDungeonOnOff, getDungeonOn=getDungeonOn, setDungeonCallback=setDungeonCallback,
     }
