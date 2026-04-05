@@ -1,12 +1,9 @@
 -- ╔══════════════════════════════════╗
--- ║  YiDaMuSake — UI Library          ║
+-- ║  YiDaMuSake — UI Library  v7    ║
 -- ╚══════════════════════════════════╝
 local TweenService = game:GetService("TweenService")
 local UIS          = game:GetService("UserInputService")
 
--- =====================
--- THEME (modern darker)
--- =====================
 local T = {
     bg           = Color3.fromRGB(8,   7,  14),
     surface      = Color3.fromRGB(12,  11,  20),
@@ -40,7 +37,7 @@ local ACCENT_PRESETS = {
 local UISettings = {
     scale         = 1.0,
     accentPreset  = "Purple",
-    cornerRadius  = 16,
+    cornerRadius  = 14,
     particles     = true,
     particleCount = 26,
     glow          = true,
@@ -51,8 +48,6 @@ local UISettings = {
 
 -- =====================
 -- FONT SIZE REGISTRY
--- Elements registered here will be updated when font size changes.
--- Only "content" labels (default 12px) are registered.
 -- =====================
 local fontSizeReg = {}
 local function regFS(obj)
@@ -130,7 +125,7 @@ local function ripple(parent,x,y,col)
 end
 
 -- =====================
--- COMPONENT: SCROLL PAGE
+-- SCROLL PAGE
 -- =====================
 local function mkScrollPage(parent)
     local sf=Instance.new("ScrollingFrame",parent)
@@ -150,8 +145,7 @@ local function mkScrollPage(parent)
 end
 
 -- =====================
--- COMPONENT: GROUP BOX
--- Status + Dropdown + ON/OFF dalam 1 border
+-- GROUP BOX
 -- =====================
 local function mkGroupBox(parent, order)
     local grp=Instance.new("Frame",parent)
@@ -171,7 +165,7 @@ local function mkGroupBox(parent, order)
 end
 
 -- =====================
--- COMPONENT: SECTION LABEL (dalam group)
+-- SECTION LABEL (dalam group)
 -- =====================
 local function mkSectionLabel(parent, label, order)
     local f=Instance.new("Frame",parent)
@@ -191,7 +185,7 @@ local function mkSectionLabel(parent, label, order)
 end
 
 -- =====================
--- COMPONENT: SECTION HEADER (di scroll page)
+-- SECTION HEADER (di scroll page)
 -- =====================
 local function mkSection(parent,label,order)
     local f=Instance.new("Frame",parent)
@@ -214,7 +208,7 @@ local function mkSection(parent,label,order)
 end
 
 -- =====================
--- COMPONENT: CARD
+-- CARD
 -- =====================
 local function mkCard(parent,h,order)
     local c=Instance.new("Frame",parent)
@@ -244,7 +238,7 @@ local function mkCard(parent,h,order)
 end
 
 -- =====================
--- COMPONENT: STATUS ROW
+-- STATUS ROW
 -- =====================
 local function mkStatus(parent,prefix,init,order)
     local c=Instance.new("Frame",parent)
@@ -277,7 +271,7 @@ local function mkStatus(parent,prefix,init,order)
 end
 
 -- =====================
--- COMPONENT: TOGGLE
+-- TOGGLE
 -- =====================
 local function mkToggle(parent,label,default,onChange,order)
     local card=mkCard(parent,40,order)
@@ -315,7 +309,7 @@ local function mkToggle(parent,label,default,onChange,order)
 end
 
 -- =====================
--- COMPONENT: SLIDER
+-- SLIDER
 -- =====================
 local function mkSlider(parent,label,min,max,default,suffix,onChange,order)
     local card=mkCard(parent,60,order)
@@ -386,7 +380,7 @@ local function mkSlider(parent,label,min,max,default,suffix,onChange,order)
 end
 
 -- =====================
--- COMPONENT: ON/OFF BUTTON (state-safe)
+-- ON/OFF BUTTON (state-safe)
 -- =====================
 local function mkOnOffBtn(parent,label,order)
     local BTN_H=46
@@ -398,13 +392,11 @@ local function mkOnOffBtn(parent,label,order)
     Instance.new("UICorner",wrapper).CornerRadius=UDim.new(0,11)
     local wStroke=Instance.new("UIStroke",wrapper)
     wStroke.Color=T.border; wStroke.Thickness=1.2; wStroke.Transparency=0.2
-
     local wGlow=Instance.new("ImageLabel",wrapper)
     wGlow.Size=UDim2.new(1,22,1,22); wGlow.Position=UDim2.new(0.5,0,0.5,0)
     wGlow.AnchorPoint=Vector2.new(0.5,0.5); wGlow.BackgroundTransparency=1
     wGlow.Image="rbxassetid://5028857084"; wGlow.ImageColor3=T.green
     wGlow.ImageTransparency=1; wGlow.ZIndex=0
-
     local dot=Instance.new("Frame",wrapper)
     dot.Size=UDim2.new(0,7,0,7); dot.Position=UDim2.new(0,12,0.5,0)
     dot.AnchorPoint=Vector2.new(0,0.5); dot.BackgroundColor3=T.red
@@ -412,22 +404,18 @@ local function mkOnOffBtn(parent,label,order)
     Instance.new("UICorner",dot).CornerRadius=UDim.new(1,0)
     local dotGlow=Instance.new("UIStroke",dot)
     dotGlow.Color=T.red; dotGlow.Thickness=1.5; dotGlow.Transparency=0.5
-
     local lbl=Instance.new("TextLabel",wrapper)
     lbl.Size=UDim2.new(1,-64,1,0); lbl.Position=UDim2.new(0,26,0,0)
     lbl.BackgroundTransparency=1; lbl.Text=label
     lbl.TextColor3=T.textSub; lbl.Font=Enum.Font.GothamBold
     lbl.TextSize=UISettings.fontSize; lbl.TextXAlignment=Enum.TextXAlignment.Left; lbl.ZIndex=8
     regFS(lbl)
-
     local statusTxt=Instance.new("TextLabel",wrapper)
     statusTxt.Size=UDim2.new(0,38,1,0); statusTxt.Position=UDim2.new(1,-42,0,0)
     statusTxt.BackgroundTransparency=1; statusTxt.Text="OFF"
     statusTxt.TextColor3=T.textDim; statusTxt.Font=Enum.Font.GothamBold
     statusTxt.TextSize=11; statusTxt.ZIndex=8
-
     local on=false; local externalCb=nil
-
     local function applyVisual(v)
         if v then
             smooth(wrapper,{BackgroundColor3=T.white},0.20):Play()
@@ -449,10 +437,8 @@ local function mkOnOffBtn(parent,label,order)
             smooth(statusTxt,{TextColor3=T.textDim},0.1):Play()
         end
     end
-
     local function setOn(v) on=v; applyVisual(v) end
     local function setCallback(cb) externalCb=cb end
-
     local hit=Instance.new("TextButton",wrapper)
     hit.Size=UDim2.new(1,0,1,0); hit.BackgroundTransparency=1; hit.Text=""; hit.ZIndex=10
     hit.MouseEnter:Connect(function()
@@ -479,7 +465,8 @@ local function mkOnOffBtn(parent,label,order)
 end
 
 -- =====================
--- COMPONENT: DROPDOWN V2
+-- DROPDOWN V2
+-- KEY FIX: setOpen defined BEFORE item loop so auto-close works
 -- =====================
 local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,order)
     local HEADER_H=44; local ITEM_H=34
@@ -494,9 +481,11 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
         ColorSequenceKeypoint.new(0,Color3.fromRGB(20,18,32)),
         ColorSequenceKeypoint.new(1,Color3.fromRGB(13,12,22)),
     }
+
     local header=Instance.new("TextButton",wrapper)
     header.Size=UDim2.new(1,0,0,HEADER_H)
     header.BackgroundTransparency=1; header.Text=""; header.ZIndex=8
+
     local icCircle=Instance.new("Frame",header)
     icCircle.Size=UDim2.new(0,24,0,24); icCircle.Position=UDim2.new(0,10,0.5,0)
     icCircle.AnchorPoint=Vector2.new(0,0.5); icCircle.BackgroundColor3=iconCol or T.accentSoft
@@ -506,34 +495,62 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
     icSym.Size=UDim2.new(1,0,1,0); icSym.BackgroundTransparency=1
     icSym.Text=icon or "?"; icSym.TextColor3=T.white
     icSym.Font=Enum.Font.GothamBold; icSym.TextSize=11; icSym.ZIndex=10
+
     local labelL=Instance.new("TextLabel",header)
     labelL.Size=UDim2.new(1,-108,1,0); labelL.Position=UDim2.new(0,42,0,0)
     labelL.BackgroundTransparency=1; labelL.Text=label; labelL.TextColor3=T.text
     labelL.Font=Enum.Font.GothamBold; labelL.TextSize=UISettings.fontSize
     labelL.TextXAlignment=Enum.TextXAlignment.Left; labelL.ZIndex=9
     regFS(labelL)
+
     local selValL=Instance.new("TextLabel",header)
     selValL.Size=UDim2.new(0,68,1,0); selValL.Position=UDim2.new(1,-92,0,0)
     selValL.BackgroundTransparency=1; selValL.Text=default or (items[1] or "")
     selValL.TextColor3=T.accentGlow; selValL.Font=Enum.Font.Gotham
     selValL.TextSize=10; selValL.TextXAlignment=Enum.TextXAlignment.Right; selValL.ZIndex=9
     regAccent("txtGlow",selValL)
+
     local arrowL=Instance.new("TextLabel",header)
     arrowL.Size=UDim2.new(0,22,1,0); arrowL.Position=UDim2.new(1,-24,0,0)
     arrowL.BackgroundTransparency=1; arrowL.Text="▾"
     arrowL.TextColor3=T.textSub; arrowL.Font=Enum.Font.GothamBold
     arrowL.TextSize=11; arrowL.ZIndex=9
+
     local selected=default or items[1]
     local itemFrames={}
+
+    -- ── setOpen DEFINED FIRST ──────────────────────────────
+    -- Must be before item loop so closures can reference it
+    local open=false
+    local CLOSED_H=HEADER_H
+    local OPEN_H=HEADER_H+#items*ITEM_H+2
+
+    local function setOpen(state)
+        open=state
+        smooth(wrapper,{Size=UDim2.new(1,0,0,state and OPEN_H or CLOSED_H)},0.26):Play()
+        smooth(arrowL,{Rotation=state and 180 or 0},0.20):Play()
+        if state then
+            smooth(wStroke,{Color=T.accentGlow,Transparency=0.05,Thickness=1.3},0.20):Play()
+            smooth(wrapper,{BackgroundColor3=T.cardHover},0.20):Play()
+        else
+            smooth(wStroke,{Color=T.border,Transparency=0.3,Thickness=1.0},0.20):Play()
+            smooth(wrapper,{BackgroundColor3=T.card},0.20):Play()
+        end
+    end
+    -- ──────────────────────────────────────────────────────
+
+    -- Item loop (setOpen accessible via closure)
     for idx,item in ipairs(items) do
         local yOff=HEADER_H+(idx-1)*ITEM_H
         local sep=Instance.new("Frame",wrapper)
         sep.Size=UDim2.new(1,-12,0,1); sep.Position=UDim2.new(0,6,0,yOff)
         sep.BackgroundColor3=T.border; sep.BackgroundTransparency=0.2
         sep.BorderSizePixel=0; sep.ZIndex=6
+
         local itemBtn=Instance.new("TextButton",wrapper)
         itemBtn.Size=UDim2.new(1,0,0,ITEM_H); itemBtn.Position=UDim2.new(0,0,0,yOff+1)
         itemBtn.BackgroundTransparency=1; itemBtn.Text=""; itemBtn.ZIndex=7
+
         local hlBg=Instance.new("Frame",itemBtn)
         hlBg.Size=UDim2.new(1,-12,1,-6); hlBg.Position=UDim2.new(0,6,0,3)
         hlBg.BackgroundColor3=T.accent
@@ -541,6 +558,7 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
         hlBg.BorderSizePixel=0; hlBg.ZIndex=7
         Instance.new("UICorner",hlBg).CornerRadius=UDim.new(0,6)
         regAccent("bgAccent",hlBg)
+
         local itemDot=Instance.new("Frame",itemBtn)
         itemDot.Size=UDim2.new(0,4,0,4); itemDot.Position=UDim2.new(0,14,0.5,0)
         itemDot.AnchorPoint=Vector2.new(0,0.5)
@@ -548,19 +566,23 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
         itemDot.BackgroundTransparency=(item==selected) and 0 or 0.6
         itemDot.BorderSizePixel=0; itemDot.ZIndex=8
         Instance.new("UICorner",itemDot).CornerRadius=UDim.new(1,0)
+
         local itemTxt=Instance.new("TextLabel",itemBtn)
         itemTxt.Size=UDim2.new(1,-48,1,0); itemTxt.Position=UDim2.new(0,24,0,0)
         itemTxt.BackgroundTransparency=1; itemTxt.Text=item
         itemTxt.TextColor3=(item==selected) and T.white or T.textSub
         itemTxt.Font=(item==selected) and Enum.Font.GothamBold or Enum.Font.Gotham
         itemTxt.TextSize=11; itemTxt.TextXAlignment=Enum.TextXAlignment.Left; itemTxt.ZIndex=8
+
         local checkL=Instance.new("TextLabel",itemBtn)
         checkL.Size=UDim2.new(0,22,1,0); checkL.Position=UDim2.new(1,-24,0,0)
         checkL.BackgroundTransparency=1; checkL.Text=(item==selected) and "✓" or ""
         checkL.TextColor3=T.accentGlow; checkL.Font=Enum.Font.GothamBold
         checkL.TextSize=11; checkL.ZIndex=8
         regAccent("txtGlow",checkL)
+
         itemFrames[idx]={btn=itemBtn,hlBg=hlBg,dot=itemDot,txt=itemTxt,check=checkL}
+
         itemBtn.MouseEnter:Connect(function()
             if item~=selected then
                 smooth(hlBg,{BackgroundTransparency=0.86},0.10):Play()
@@ -573,6 +595,7 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
                 smooth(itemTxt,{TextColor3=T.textSub},0.10):Play()
             end
         end)
+
         local ci=item
         itemBtn.MouseButton1Click:Connect(function()
             selected=ci; selValL.Text=ci
@@ -587,22 +610,10 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
                 d.check.Text=isSel and "✓" or ""
             end
             if onChange then onChange(ci) end
+            setOpen(false)  -- ← AUTO CLOSE setelah pilih
         end)
     end
-    local open=false
-    local CLOSED_H=HEADER_H; local OPEN_H=HEADER_H+#items*ITEM_H+2
-    local function setOpen(state)
-        open=state
-        smooth(wrapper,{Size=UDim2.new(1,0,0,state and OPEN_H or CLOSED_H)},0.26):Play()
-        smooth(arrowL,{Rotation=state and 180 or 0},0.20):Play()
-        if state then
-            smooth(wStroke,{Color=T.accentGlow,Transparency=0.05,Thickness=1.3},0.20):Play()
-            smooth(wrapper,{BackgroundColor3=T.cardHover},0.20):Play()
-        else
-            smooth(wStroke,{Color=T.border,Transparency=0.3,Thickness=1.0},0.20):Play()
-            smooth(wrapper,{BackgroundColor3=T.card},0.20):Play()
-        end
-    end
+
     header.MouseButton1Click:Connect(function()
         ripple(header,header.AbsoluteSize.X*0.5,header.AbsoluteSize.Y*0.5,T.accent)
         setOpen(not open)
@@ -613,11 +624,12 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
     header.MouseLeave:Connect(function()
         if not open then smooth(wrapper,{BackgroundColor3=T.card},0.12):Play() end
     end)
+
     return wrapper,function() return selected end
 end
 
 -- =====================
--- COMPONENT: SUB-TAB BAR
+-- SUB-TAB BAR
 -- =====================
 local function mkSubTabBar(parent,tabs)
     local BAR_H=32
@@ -678,9 +690,6 @@ local function mkSubTabBar(parent,tabs)
     return subPages
 end
 
--- =====================
--- RETURN MODULE
--- =====================
 return {
     T=T, UISettings=UISettings,
     regAccent=regAccent, applyAccent=applyAccent,
