@@ -33,16 +33,12 @@ local function detectBosses()
     return list
 end
 
--- FIX: Scan semua TextLabel descendant di container
--- Cari yang textnya format "M:SS" (waktu countdown)
+-- Scan semua TextLabel descendant, cari format "M:SS"
 local function findTimerTextLabel(container)
     for _,desc in ipairs(container:GetDescendants()) do
         if desc:IsA("TextLabel") then
-            local txt = desc.Text or ""
-            -- match format "1:23" atau "12:34"
-            if txt:match("^%d+:%d%d$") then
-                return desc
-            end
+            local txt=desc.Text or ""
+            if txt:match("^%d+:%d%d$") then return desc end
         end
     end
     return nil
@@ -99,7 +95,6 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     local tcL=Instance.new("UIListLayout",timerContainer)
     tcL.Padding=UDim.new(0,5); tcL.SortOrder=Enum.SortOrder.LayoutOrder
 
-    -- {timerLbl=TextLabel ref, dispTimer=TextLabel, dispStatus=TextLabel, cardStroke=UIStroke}
     local timerEntries={}
 
     local function buildTimerCards()
@@ -108,13 +103,10 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
         end
         timerEntries={}
         local found=0
-
         for _,child in ipairs(workspace:GetChildren()) do
             local bossName=child.Name:match("^TimedBossSpawn_(.+)_Container$")
             if bossName then
                 found=found+1
-
-                -- FIX: scan semua descendant TextLabel cari format "M:SS"
                 local timerLbl=findTimerTextLabel(child)
 
                 local card=Instance.new("Frame",timerContainer)
@@ -134,15 +126,15 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
                 local dispTimer=Instance.new("TextLabel",card)
                 dispTimer.Size=UDim2.new(0.4,-12,0,22); dispTimer.Position=UDim2.new(0.6,0,0,6)
                 dispTimer.BackgroundTransparency=1
-                dispTimer.Text=timerLbl and timerLbl.Text or "Mencari..."
+                dispTimer.Text=timerLbl and timerLbl.Text or "..."
                 dispTimer.TextColor3=T.accentGlow; dispTimer.Font=Enum.Font.GothamBold
                 dispTimer.TextSize=13; dispTimer.TextXAlignment=Enum.TextXAlignment.Right; dispTimer.ZIndex=6
 
                 local dispStatus=Instance.new("TextLabel",card)
                 dispStatus.Size=UDim2.new(1,-24,0,14); dispStatus.Position=UDim2.new(0,12,0,34)
                 dispStatus.BackgroundTransparency=1
-                dispStatus.Text=timerLbl and "Timer ditemukan" or "Timer TextLabel tidak ditemukan"
-                dispStatus.TextColor3=timerLbl and T.textDim or T.red
+                dispStatus.Text=timerLbl and "Timer OK" or "Scan ulang saat refresh"
+                dispStatus.TextColor3=timerLbl and T.textDim or T.amber
                 dispStatus.Font=Enum.Font.Gotham
                 dispStatus.TextSize=9; dispStatus.TextXAlignment=Enum.TextXAlignment.Left; dispStatus.ZIndex=6
 
@@ -155,7 +147,6 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
                 })
             end
         end
-
         if found==0 then
             local el=Instance.new("TextLabel",timerContainer)
             el.Size=UDim2.new(1,0,0,34); el.BackgroundTransparency=1
@@ -171,34 +162,32 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
         buildTimerCards()
     end)
 
-    -- Live update: setiap 1 detik baca .Text langsung dari TextLabel game
+    -- Live update 1 detik
     task.spawn(function()
         while infoSF and infoSF.Parent do
             for _,e in ipairs(timerEntries) do
                 pcall(function()
-                    -- Jika timerLbl belum ditemukan saat build, coba lagi
+                    -- Retry find jika belum ketemu
                     if not e.timerLbl or not e.timerLbl.Parent then
                         local found=findTimerTextLabel(e.container)
                         if found then
                             e.timerLbl=found
                             e.dispStatus.Text="Timer ditemukan"
-                            e.dispStatus.TextColor3=T.textDim
+                            e.dispStatus.TextColor3=T.green
                         else
                             e.dispTimer.Text="?"
                             e.dispTimer.TextColor3=T.textDim
-                            e.dispStatus.Text="Belum ada timer — coba refresh"
-                            e.dispStatus.TextColor3=T.red
+                            e.dispStatus.Text="Belum ada timer"
+                            e.dispStatus.TextColor3=T.amber
                             return
                         end
                     end
-
                     local txt=e.timerLbl.Text or ""
                     e.dispTimer.Text=(txt~="" and txt or "?")
-
                     local secs=parseTimerSecs(txt)
                     if secs<0 then
                         e.dispTimer.TextColor3=T.textDim
-                        e.dispStatus.Text="Format tidak dikenali: "..txt
+                        e.dispStatus.Text="Format: "..txt
                         smooth(e.cardStroke,{Color=T.border},0.3):Play()
                     elseif secs==0 then
                         e.dispTimer.TextColor3=T.green
@@ -254,8 +243,22 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     local _,setTD,    getTD    =mkSlider(farmSF,"Jeda Titik",1,10,1,"s",nil,5)
     local _,setLD,    getLD    =mkSlider(farmSF,"Loop Delay",0,10,3,"s",nil,6)
 
-    mkSection(farmSF,"Auto Skill",7)
-    local skillGroup=mkGroupBox(farmSF,8)
+    -- Mode toggle group
+    mkSection(farmSF,"Mode",7)
+    local modeGroup=mkGroupBox(farmSF,8)
+    mkSectionLabel(modeGroup,"Testing Mode",1)
+    local faceDownOn=false
+    local _,setFaceDown,getFaceDown=mkToggle(
+        modeGroup,
+        "Face Down (menghadap bawah)",
+        false,
+        function(v) faceDownOn=v end,
+        2
+    )
+
+    -- Auto Skill group
+    mkSection(farmSF,"Auto Skill",9)
+    local skillGroup=mkGroupBox(farmSF,10)
     mkSectionLabel(skillGroup,"Toggle per Skill",1)
     local skillOn={Z=false,X=false,C=false,V=false}
     mkToggle(skillGroup,"Auto Z Skill  (arg 1)",false,function(v) skillOn.Z=v end,2)
@@ -353,23 +356,19 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     local _,setBossPhase =mkStatus(bossStatusGroup,"Phase","--",4)
 
     local bossSelectorGroup=mkGroupBox(bossSF,2)
-    mkSectionLabel(bossSelectorGroup,"Boss Aktif di Workspace",1)
+    mkSectionLabel(bossSelectorGroup,"Pilih Boss",1)
 
-    local bossRefreshBtn=Instance.new("TextButton",bossSelectorGroup)
-    bossRefreshBtn.Size=UDim2.new(1,0,0,30)
-    bossRefreshBtn.BackgroundColor3=Color3.fromRGB(28,24,44)
-    bossRefreshBtn.Text="↻  Refresh Boss List"
-    bossRefreshBtn.TextColor3=T.textSub; bossRefreshBtn.Font=Enum.Font.GothamBold
-    bossRefreshBtn.TextSize=11; bossRefreshBtn.BorderSizePixel=0
-    bossRefreshBtn.LayoutOrder=2; bossRefreshBtn.ZIndex=6
-    Instance.new("UICorner",bossRefreshBtn).CornerRadius=UDim.new(0,8)
-    Instance.new("UIStroke",bossRefreshBtn).Color=T.borderBright
-
+    -- Boss list — pilih dari daftar yang sudah diketahui, bukan dari workspace
+    -- karena boss mungkin belum render
+    local KNOWN_BOSSES={
+        "AizenBoss","AlucardBoss","JinwooBoss","SukunaBoss",
+        "YujiBoss","GojoBoss","KnightBoss","YamatoBoss","StrongestShinobiBoss",
+    }
     local bossListContainer=Instance.new("Frame",bossSelectorGroup)
     bossListContainer.BackgroundTransparency=1
     bossListContainer.Size=UDim2.new(1,0,0,0)
     bossListContainer.AutomaticSize=Enum.AutomaticSize.Y
-    bossListContainer.BorderSizePixel=0; bossListContainer.LayoutOrder=3
+    bossListContainer.BorderSizePixel=0; bossListContainer.LayoutOrder=2
     local blcL=Instance.new("UIListLayout",bossListContainer)
     blcL.Padding=UDim.new(0,4); blcL.SortOrder=Enum.SortOrder.LayoutOrder
 
@@ -384,19 +383,7 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     local function rebuildBossCards()
         for _,c in ipairs(bossCards) do pcall(function() c:Destroy() end) end
         bossCards={}
-        local list=detectBosses()
-        if #list==0 then
-            local ec=Instance.new("Frame",bossListContainer)
-            ec.Size=UDim2.new(1,0,0,30); ec.BackgroundColor3=Color3.fromRGB(14,13,22)
-            ec.BorderSizePixel=0; ec.LayoutOrder=1; ec.ZIndex=5
-            Instance.new("UICorner",ec).CornerRadius=UDim.new(0,8)
-            local el=Instance.new("TextLabel",ec)
-            el.Size=UDim2.new(1,0,1,0); el.BackgroundTransparency=1
-            el.Text="Tidak ada boss terdeteksi"; el.TextColor3=T.textDim
-            el.Font=Enum.Font.Gotham; el.TextSize=10; el.ZIndex=6
-            table.insert(bossCards,ec); return
-        end
-        for idx,bossName in ipairs(list) do
+        for idx,bossName in ipairs(KNOWN_BOSSES) do
             local isSel=(selectedBoss==bossName)
             local card=Instance.new("Frame",bossListContainer)
             card.Size=UDim2.new(1,0,0,38)
@@ -406,18 +393,21 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
             local cs=Instance.new("UIStroke",card)
             cs.Color=isSel and T.accentGlow or T.border
             cs.Transparency=isSel and 0.08 or 0.4; cs.Thickness=1.0
+
             local dot=Instance.new("Frame",card)
             dot.Size=UDim2.new(0,6,0,6); dot.Position=UDim2.new(0,10,0.5,0)
             dot.AnchorPoint=Vector2.new(0,0.5)
-            dot.BackgroundColor3=isSel and T.green or T.red
+            dot.BackgroundColor3=isSel and T.green or T.textDim
             dot.BorderSizePixel=0; dot.ZIndex=7
             Instance.new("UICorner",dot).CornerRadius=UDim.new(1,0)
+
             local nameL=Instance.new("TextLabel",card)
             nameL.Size=UDim2.new(1,-78,1,0); nameL.Position=UDim2.new(0,22,0,0)
             nameL.BackgroundTransparency=1; nameL.Text=bossName
             nameL.TextColor3=isSel and T.white or T.textSub
             nameL.Font=isSel and Enum.Font.GothamBold or Enum.Font.Gotham
             nameL.TextSize=11; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
+
             local selBtn=Instance.new("TextButton",card)
             selBtn.Size=UDim2.new(0,52,0,24); selBtn.Position=UDim2.new(1,-56,0.5,0)
             selBtn.AnchorPoint=Vector2.new(0,0.5)
@@ -426,6 +416,7 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
             selBtn.TextColor3=T.white; selBtn.Font=Enum.Font.GothamBold
             selBtn.TextSize=10; selBtn.BorderSizePixel=0; selBtn.ZIndex=7
             Instance.new("UICorner",selBtn).CornerRadius=UDim.new(0,6)
+
             local ci=bossName
             selBtn.MouseButton1Click:Connect(function()
                 selectedBoss=ci
@@ -436,28 +427,19 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
             table.insert(bossCards,card)
         end
     end
-    bossRefreshBtn.MouseButton1Click:Connect(function()
-        ripple(bossRefreshBtn,bossRefreshBtn.AbsoluteSize.X*0.5,bossRefreshBtn.AbsoluteSize.Y*0.5,T.white)
-        rebuildBossCards()
-        setBossStat("List diperbarui",T.accentGlow)
-        task.delay(1.5,function() if not getBossOn() then setBossStat("Idle",T.textDim) end end)
-    end)
     rebuildBossCards()
 
     -- ── DUNGEON ──────────────────────────────────────────
     local dungeonSF=subPages["Dungeon"]
-
     local dungeonStatusGroup=mkGroupBox(dungeonSF,1)
     mkSectionLabel(dungeonStatusGroup,"Status",1)
     local _,setDungeonStat=mkStatus(dungeonStatusGroup,"Status","Idle",2)
     local _,setDungeonNPC =mkStatus(dungeonStatusGroup,"NPC","--",3)
     local _,setDungeonHit =mkStatus(dungeonStatusGroup,"Hit","0/s",4)
-
     local dungeonControlGroup=mkGroupBox(dungeonSF,2)
     mkSectionLabel(dungeonControlGroup,"Control",1)
     local dungeonOnOffBtn,setDungeonOnOff,getDungeonOn,setDungeonCallback=
         mkOnOffBtn(dungeonControlGroup,"Auto Dungeon",2)
-
     mkSection(dungeonSF,"Info",3)
     mkStatus(dungeonSF,"Remote","RequestHit + Ability 1-3",4)
     mkStatus(dungeonSF,"Tween","Ke semua NPC (1s/NPC)",5)
@@ -467,7 +449,6 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
     -- PAGE: SETTINGS
     -- ════════════════════════════════
     local settingsSF=mkScrollPage(sideData["Settings"].page)
-
     mkSection(settingsSF,"Appearance",1)
     mkSlider(settingsSF,"UI Scale",70,130,100,"%",function(v)
         root.Size=UDim2.new(0,root.AbsoluteSize.X*(v/100),0,root.AbsoluteSize.Y*(v/100))
@@ -508,6 +489,7 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner,
         getHeight=getHeight, getSpeed=getSpeed, getTD=getTD, getLD=getLD,
         setFarmStat=setFarmStat, setFarmPhase=setFarmPhase, setFarmNPC=setFarmNPC,
         setFarmOnOff=setFarmOnOff, getFarmOn=getFarmOn, setFarmCallback=setFarmCallback,
+        getFaceDown=function() return faceDownOn end,
         getSkillOn=function(k) return skillOn[k] end,
         setHitStat=setHitStat, setHitRate=setHitRate,
         setHitOnOff=setHitOnOff, getHitOn=getHitOn, setHitCallback=setHitCallback,
