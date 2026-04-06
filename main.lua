@@ -640,7 +640,8 @@ local refs = buildPages(
     lib, sideData, contentArea,
     bgF, root, rootCorner, rootStroke, rootGlow,
     particleList, spawnParticles,
-    applyUIBgMode, applyMiniBgMode
+    applyUIBgMode, applyMiniBgMode,
+    gui   
 )
 
 local startLogic = load("logic.lua")
