@@ -45,9 +45,6 @@ local UISettings = {
     uiBgMode      = "Solid",
 }
 
--- =====================
--- FONT SIZE REGISTRY
--- =====================
 local fontSizeReg = {}
 local function regFS(obj)
     if obj then table.insert(fontSizeReg, obj) end
@@ -61,9 +58,6 @@ local function applyFontSize(v)
     end
 end
 
--- =====================
--- ACCENT REGISTRY
--- =====================
 local accentRegistry = {}
 local function regAccent(typ, obj) table.insert(accentRegistry,{t=typ,o=obj}) end
 
@@ -90,9 +84,6 @@ local function applyAccent(preset)
     UISettings.accentPreset=preset; applyAccentLive()
 end
 
--- =====================
--- TWEEN HELPERS
--- =====================
 local function tw(o,p,t,s,d)
     return TweenService:Create(o,TweenInfo.new(t or 0.22,s or Enum.EasingStyle.Quint,d or Enum.EasingDirection.Out),p)
 end
@@ -100,9 +91,6 @@ local function smooth(o,p,t) return tw(o,p,t or 0.22) end
 local function spring(o,p,t) return tw(o,p,t or 0.34,Enum.EasingStyle.Back,Enum.EasingDirection.Out) end
 local function ease(o,p,t)   return tw(o,p,t or 0.28,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut) end
 
--- =====================
--- RIPPLE
--- =====================
 local function ripple(parent,x,y,col)
     local ok,pos=pcall(function()
         return Vector2.new(x or parent.AbsoluteSize.X/2, y or parent.AbsoluteSize.Y/2)
@@ -123,63 +111,78 @@ local function ripple(parent,x,y,col)
 end
 
 -- =====================
--- SCROLL PAGE
+-- SCROLL PAGE (single column)
 -- =====================
 local function mkScrollPage(parent)
     local sf=Instance.new("ScrollingFrame",parent)
-    sf.Size=UDim2.new(1,-6,1,-6); sf.Position=UDim2.new(0,3,0,3)
+    sf.Size=UDim2.new(1,0,1,0)
     sf.BackgroundTransparency=1; sf.BorderSizePixel=0
     sf.ScrollBarThickness=2; sf.ScrollBarImageColor3=T.accent
     sf.ScrollBarImageTransparency=0.4
     sf.CanvasSize=UDim2.new(0,0,0,0); sf.AutomaticCanvasSize=Enum.AutomaticSize.Y
     sf.ZIndex=3; sf.ClipsDescendants=true
+    sf.ScrollingEnabled=true
     regAccent("scrollbar",sf)
     local ul=Instance.new("UIListLayout",sf)
     ul.Padding=UDim.new(0,5); ul.SortOrder=Enum.SortOrder.LayoutOrder
     local pp=Instance.new("UIPadding",sf)
-    pp.PaddingTop=UDim.new(0,4); pp.PaddingBottom=UDim.new(0,12)
-    pp.PaddingLeft=UDim.new(0,3); pp.PaddingRight=UDim.new(0,3)
+    pp.PaddingTop=UDim.new(0,5); pp.PaddingBottom=UDim.new(0,14)
+    pp.PaddingLeft=UDim.new(0,4); pp.PaddingRight=UDim.new(0,4)
     return sf
 end
 
 -- =====================
--- TWO COLUMN LAYOUT HELPER
--- Returns (leftSF, rightSF)
+-- TWO-COLUMN LAYOUT
+-- FIX: satu ScrollingFrame tunggal dengan dua plain Frame kolom.
+-- Dua SF berdampingan di Roblox menyebabkan input gagal karena
+-- engine tidak bisa menentukan SF mana yang harus menerima klik/scroll.
 -- =====================
 local function mkTwoColLayout(parent, dividerColor)
-    -- Left column
-    local leftF=Instance.new("Frame",parent)
-    leftF.Size=UDim2.new(0.5,-3,1,0); leftF.Position=UDim2.new(0,0,0,0)
+    -- Satu SF sebagai satu-satunya scroll container
+    local sf=Instance.new("ScrollingFrame",parent)
+    sf.Size=UDim2.new(1,0,1,0)
+    sf.BackgroundTransparency=1; sf.BorderSizePixel=0
+    sf.ScrollBarThickness=2; sf.ScrollBarImageColor3=T.accent
+    sf.ScrollBarImageTransparency=0.4
+    sf.CanvasSize=UDim2.new(0,0,0,0); sf.AutomaticCanvasSize=Enum.AutomaticSize.Y
+    sf.ZIndex=3; sf.ClipsDescendants=true
+    sf.ScrollingEnabled=true
+    regAccent("scrollbar",sf)
+    local pp=Instance.new("UIPadding",sf)
+    pp.PaddingTop=UDim.new(0,4); pp.PaddingBottom=UDim.new(0,14)
+    pp.PaddingLeft=UDim.new(0,3); pp.PaddingRight=UDim.new(0,3)
+
+    -- Kolom kiri (plain Frame, bukan ScrollingFrame)
+    local leftF=Instance.new("Frame",sf)
+    leftF.Size=UDim2.new(0.5,-3,0,0)
+    leftF.Position=UDim2.new(0,0,0,0)
     leftF.BackgroundTransparency=1
+    leftF.AutomaticSize=Enum.AutomaticSize.Y
+    leftF.BorderSizePixel=0; leftF.ZIndex=3
+    local ll=Instance.new("UIListLayout",leftF)
+    ll.Padding=UDim.new(0,5); ll.SortOrder=Enum.SortOrder.LayoutOrder
 
-    -- Divider
-    local div=Instance.new("Frame",parent)
-    div.Size=UDim2.new(0,1,1,-8); div.Position=UDim2.new(0.5,-0.5,0,4)
-    div.BackgroundColor3=dividerColor or T.border
-    div.BackgroundTransparency=0.35; div.BorderSizePixel=0; div.ZIndex=4
-
-    -- Right column
-    local rightF=Instance.new("Frame",parent)
-    rightF.Size=UDim2.new(0.5,-3,1,0); rightF.Position=UDim2.new(0.5,3,0,0)
-    rightF.BackgroundTransparency=1
-
-    local function makeSF(col)
-        local sf=Instance.new("ScrollingFrame",col)
-        sf.Size=UDim2.new(1,-4,1,-4); sf.Position=UDim2.new(0,2,0,2)
-        sf.BackgroundTransparency=1; sf.BorderSizePixel=0
-        sf.ScrollBarThickness=2; sf.ScrollBarImageColor3=T.accent
-        sf.ScrollBarImageTransparency=0.4
-        sf.CanvasSize=UDim2.new(0,0,0,0); sf.AutomaticCanvasSize=Enum.AutomaticSize.Y
-        sf.ZIndex=3; sf.ClipsDescendants=true
-        regAccent("scrollbar",sf)
-        local ul=Instance.new("UIListLayout",sf)
-        ul.Padding=UDim.new(0,5); ul.SortOrder=Enum.SortOrder.LayoutOrder
-        local pp=Instance.new("UIPadding",sf)
-        pp.PaddingTop=UDim.new(0,4); pp.PaddingBottom=UDim.new(0,12)
-        pp.PaddingLeft=UDim.new(0,2); pp.PaddingRight=UDim.new(0,2)
-        return sf
+    -- Garis pembatas vertikal
+    if dividerColor then
+        local div=Instance.new("Frame",sf)
+        div.Size=UDim2.new(0,1,1,0)
+        div.Position=UDim2.new(0.5,-0.5,0,0)
+        div.BackgroundColor3=dividerColor
+        div.BackgroundTransparency=0.5
+        div.BorderSizePixel=0; div.ZIndex=4
     end
-    return makeSF(leftF), makeSF(rightF)
+
+    -- Kolom kanan (plain Frame, bukan ScrollingFrame)
+    local rightF=Instance.new("Frame",sf)
+    rightF.Size=UDim2.new(0.5,-3,0,0)
+    rightF.Position=UDim2.new(0.5,3,0,0)
+    rightF.BackgroundTransparency=1
+    rightF.AutomaticSize=Enum.AutomaticSize.Y
+    rightF.BorderSizePixel=0; rightF.ZIndex=3
+    local rl=Instance.new("UIListLayout",rightF)
+    rl.Padding=UDim.new(0,5); rl.SortOrder=Enum.SortOrder.LayoutOrder
+
+    return leftF, rightF
 end
 
 -- =====================
@@ -202,9 +205,6 @@ local function mkGroupBox(parent, order)
     return grp, gs
 end
 
--- =====================
--- SECTION LABEL (dalam group)
--- =====================
 local function mkSectionLabel(parent, label, order)
     local f=Instance.new("Frame",parent)
     f.Size=UDim2.new(1,0,0,15); f.BackgroundTransparency=1; f.LayoutOrder=order or 0
@@ -222,9 +222,6 @@ local function mkSectionLabel(parent, label, order)
     return f
 end
 
--- =====================
--- SECTION HEADER (scroll page)
--- =====================
 local function mkSection(parent,label,order)
     local f=Instance.new("Frame",parent)
     f.Size=UDim2.new(1,0,0,18); f.BackgroundTransparency=1; f.LayoutOrder=order or 0
@@ -245,9 +242,6 @@ local function mkSection(parent,label,order)
     return f
 end
 
--- =====================
--- CARD
--- =====================
 local function mkCard(parent,h,order)
     local c=Instance.new("Frame",parent)
     c.Size=UDim2.new(1,0,0,h or 50); c.BackgroundColor3=T.card
@@ -256,7 +250,6 @@ local function mkCard(parent,h,order)
     Instance.new("UICorner",c).CornerRadius=UDim.new(0,10)
     local cs=Instance.new("UIStroke",c)
     cs.Color=T.border; cs.Transparency=0.45; cs.Thickness=0.8
-    -- Clean subtle gradient
     local cg=Instance.new("UIGradient",c)
     cg.Color=ColorSequence.new{
         ColorSequenceKeypoint.new(0,Color3.fromRGB(22,20,34)),
@@ -278,9 +271,6 @@ local function mkCard(parent,h,order)
     return c,cs
 end
 
--- =====================
--- STATUS ROW
--- =====================
 local function mkStatus(parent,prefix,init,order)
     local c=Instance.new("Frame",parent)
     c.Size=UDim2.new(1,0,0,28); c.BackgroundColor3=Color3.fromRGB(13,12,20)
@@ -311,9 +301,6 @@ local function mkStatus(parent,prefix,init,order)
     return c,set
 end
 
--- =====================
--- TOGGLE
--- =====================
 local function mkToggle(parent,label,default,onChange,order)
     local card=mkCard(parent,38,order)
     local lbl=Instance.new("TextLabel",card)
@@ -349,9 +336,6 @@ local function mkToggle(parent,label,default,onChange,order)
     return card,apply,function() return val end
 end
 
--- =====================
--- SLIDER
--- =====================
 local function mkSlider(parent,label,min,max,default,suffix,onChange,order)
     local card=mkCard(parent,58,order)
     local lbl=Instance.new("TextLabel",card)
@@ -420,9 +404,6 @@ local function mkSlider(parent,label,min,max,default,suffix,onChange,order)
     return card,setVal,function() return curVal end
 end
 
--- =====================
--- ON/OFF BUTTON (state-safe)
--- =====================
 local function mkOnOffBtn(parent,label,order)
     local BTN_H=44
     local wrapper=Instance.new("Frame",parent)
@@ -433,13 +414,11 @@ local function mkOnOffBtn(parent,label,order)
     Instance.new("UICorner",wrapper).CornerRadius=UDim.new(0,10)
     local wStroke=Instance.new("UIStroke",wrapper)
     wStroke.Color=T.border; wStroke.Thickness=1.0; wStroke.Transparency=0.3
-
     local wGlow=Instance.new("ImageLabel",wrapper)
     wGlow.Size=UDim2.new(1,20,1,20); wGlow.Position=UDim2.new(0.5,0,0.5,0)
     wGlow.AnchorPoint=Vector2.new(0.5,0.5); wGlow.BackgroundTransparency=1
     wGlow.Image="rbxassetid://5028857084"; wGlow.ImageColor3=T.green
     wGlow.ImageTransparency=1; wGlow.ZIndex=0
-
     local dot=Instance.new("Frame",wrapper)
     dot.Size=UDim2.new(0,6,0,6); dot.Position=UDim2.new(0,12,0.5,0)
     dot.AnchorPoint=Vector2.new(0,0.5); dot.BackgroundColor3=T.red
@@ -447,22 +426,18 @@ local function mkOnOffBtn(parent,label,order)
     Instance.new("UICorner",dot).CornerRadius=UDim.new(1,0)
     local dotStroke=Instance.new("UIStroke",dot)
     dotStroke.Color=T.red; dotStroke.Thickness=1.5; dotStroke.Transparency=0.5
-
     local lbl=Instance.new("TextLabel",wrapper)
     lbl.Size=UDim2.new(1,-60,1,0); lbl.Position=UDim2.new(0,24,0,0)
     lbl.BackgroundTransparency=1; lbl.Text=label
     lbl.TextColor3=T.textSub; lbl.Font=Enum.Font.GothamBold
     lbl.TextSize=UISettings.fontSize; lbl.TextXAlignment=Enum.TextXAlignment.Left; lbl.ZIndex=8
     regFS(lbl)
-
     local statusTxt=Instance.new("TextLabel",wrapper)
     statusTxt.Size=UDim2.new(0,36,1,0); statusTxt.Position=UDim2.new(1,-40,0,0)
     statusTxt.BackgroundTransparency=1; statusTxt.Text="OFF"
     statusTxt.TextColor3=T.textDim; statusTxt.Font=Enum.Font.GothamBold
     statusTxt.TextSize=10; statusTxt.ZIndex=8
-
     local on=false; local externalCb=nil
-
     local function applyVisual(v)
         if v then
             smooth(wrapper,{BackgroundColor3=T.white},0.18):Play()
@@ -484,10 +459,8 @@ local function mkOnOffBtn(parent,label,order)
             smooth(statusTxt,{TextColor3=T.textDim},0.1):Play()
         end
     end
-
     local function setOn(v) on=v; applyVisual(v) end
     local function setCallback(cb) externalCb=cb end
-
     local hit=Instance.new("TextButton",wrapper)
     hit.Size=UDim2.new(1,0,1,0); hit.BackgroundTransparency=1; hit.Text=""; hit.ZIndex=10
     hit.MouseEnter:Connect(function()
@@ -513,9 +486,6 @@ local function mkOnOffBtn(parent,label,order)
     return wrapper, setOn, function() return on end, setCallback
 end
 
--- =====================
--- DROPDOWN V2 (auto-close after select)
--- =====================
 local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,order)
     local HEADER_H=42; local ITEM_H=32
     local wrapper=Instance.new("Frame",parent)
@@ -561,7 +531,7 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
     local selected=default or items[1]
     local itemFrames={}
 
-    -- Define setOpen BEFORE item loop so auto-close works
+    -- setOpen didefinisikan SEBELUM item loop agar auto-close berfungsi
     local open=false
     local CLOSED_H=HEADER_H
     local OPEN_H=HEADER_H+#items*ITEM_H+2
@@ -640,7 +610,7 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
                 d.check.Text=isSel and "✓" or ""
             end
             if onChange then onChange(ci) end
-            setOpen(false)  -- auto-close
+            setOpen(false)  -- auto-close setelah pilih
         end)
     end
     header.MouseButton1Click:Connect(function()
@@ -658,7 +628,8 @@ end
 
 -- =====================
 -- SUB-TAB BAR
--- Returns subPages[name] = {sf=scrollFrame, frame=outerFrame}
+-- FIX: Returns subPages[name] = plain Frame (bukan {sf,frame}).
+-- Caller yang menentukan apakah pakai mkScrollPage atau mkTwoColLayout.
 -- =====================
 local function mkSubTabBar(parent,tabs)
     local BAR_H=30
@@ -669,20 +640,16 @@ local function mkSubTabBar(parent,tabs)
     Instance.new("UICorner",barContainer).CornerRadius=UDim.new(0,9)
     local bcStroke=Instance.new("UIStroke",barContainer)
     bcStroke.Color=T.border; bcStroke.Transparency=0.2; bcStroke.Thickness=1.0
-
-    -- Separator lines between tabs
     for i=1,#tabs-1 do
         local ts=Instance.new("Frame",barContainer)
         ts.Size=UDim2.new(0,1,0.5,0); ts.Position=UDim2.new(i/#tabs,0,0.25,0)
         ts.BackgroundColor3=T.border; ts.BackgroundTransparency=0.4
         ts.BorderSizePixel=0; ts.ZIndex=9
     end
-
     local sep=Instance.new("Frame",parent)
     sep.Size=UDim2.new(1,0,0,1); sep.Position=UDim2.new(0,0,0,BAR_H+2)
     sep.BackgroundColor3=T.border; sep.BackgroundTransparency=0.3
     sep.BorderSizePixel=0; sep.ZIndex=8
-
     local pill=Instance.new("Frame",barContainer)
     pill.Size=UDim2.new(1/#tabs,-6,0,BAR_H-8); pill.Position=UDim2.new(0,3,0,4)
     pill.BackgroundColor3=T.accent; pill.BorderSizePixel=0; pill.ZIndex=9
@@ -692,10 +659,8 @@ local function mkSubTabBar(parent,tabs)
         ColorSequenceKeypoint.new(1,T.accent),
     }
     regAccent("bgAccent",pill)
-
     local tabTextSize=#tabs>=5 and 9 or 10
     local subBtns={}; local subPages={}
-
     local function switchSub(idx)
         smooth(pill,{Position=UDim2.new((idx-1)/#tabs,3,0,4)},0.22):Play()
         for i2,d in ipairs(subBtns) do
@@ -703,7 +668,6 @@ local function mkSubTabBar(parent,tabs)
             d.subPage.Visible=(i2==idx)
         end
     end
-
     for i,name in ipairs(tabs) do
         local sbtn=Instance.new("TextButton",barContainer)
         sbtn.Size=UDim2.new(1/#tabs,0,1,0); sbtn.Position=UDim2.new((i-1)/#tabs,0,0,0)
@@ -713,14 +677,14 @@ local function mkSubTabBar(parent,tabs)
         slbl.TextColor3=(i==1) and T.white or T.textSub
         slbl.Font=Enum.Font.GothamBold; slbl.TextSize=tabTextSize; slbl.ZIndex=11
 
+        -- subPage = plain Frame, caller menentukan layout di dalamnya
         local subOuter=Instance.new("Frame",parent)
-        subOuter.Size=UDim2.new(1,0,1,-BAR_H-4); subOuter.Position=UDim2.new(0,0,0,BAR_H+4)
+        subOuter.Size=UDim2.new(1,0,1,-BAR_H-4)
+        subOuter.Position=UDim2.new(0,0,0,BAR_H+4)
         subOuter.BackgroundTransparency=1; subOuter.Visible=(i==1); subOuter.ZIndex=3
 
-        local sf=mkScrollPage(subOuter)
-        subBtns[i]={lbl=slbl,subPage=subOuter}
-        -- Return both scroll frame AND outer frame
-        subPages[name]={sf=sf, frame=subOuter}
+        subPages[name]=subOuter  -- plain Frame, bukan {sf,frame}
+        subBtns[i]={lbl=slbl, subPage=subOuter}
 
         local ci=i
         sbtn.MouseButton1Click:Connect(function()
