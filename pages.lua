@@ -1,621 +1,548 @@
 -- ╔══════════════════════════════════╗
--- ║  YiDaMuSake — Logic Layer  v8   ║
+-- ║  YiDaMuSake — Pages Builder v8.1║
 -- ╚══════════════════════════════════╝
-local Players           = game:GetService("Players")
-local TweenService      = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player            = Players.LocalPlayer
 
-local ISLANDS = {
-    ["Starter Island"]   ={coords={Vector3.new(194.943,16.207,-171.994),Vector3.new(164.245,16.207,-176.308),Vector3.new(159.530,16.207,-142.758),Vector3.new(177.723,16.207,-157.247),Vector3.new(189.238,16.207,-138.583)},center=4},
-    ["Jungle Island"]    ={coords={Vector3.new(-566.029,4.125,425.000),Vector3.new(-567.759,4.125,399.303),Vector3.new(-585.790,3.359,397.131),Vector3.new(-575.712,3.359,381.006),Vector3.new(-549.771,4.125,395.209)},center=2},
-    ["Desert Island"]    ={coords={Vector3.new(-774.852,0.777,-405.228),Vector3.new(-793.225,0.777,-433.599),Vector3.new(-768.626,0.777,-452.058),Vector3.new(-815.452,0.777,-417.817),Vector3.new(-808.365,0.777,-457.034)},center=2},
-    ["Snow Island"]      ={coords={Vector3.new(-423.471,3.861,-968.619),Vector3.new(-436.772,3.859,-998.843),Vector3.new(-410.853,3.861,-990.573),Vector3.new(-402.983,3.861,-1014.348),Vector3.new(-385.389,3.861,-981.637)},center=3},
-    ["Shibuya"]          ={coords={Vector3.new(1407.890,13.486,522.877),Vector3.new(1435.052,13.839,480.898),Vector3.new(1398.259,13.486,488.059),Vector3.new(1362.940,13.486,493.791),Vector3.new(1390.117,13.486,451.823)},center=3},
-    ["Hollow"]           ={coords={Vector3.new(-341.802,4.559,1091.144),Vector3.new(-365.126,4.559,1097.683),Vector3.new(-358.324,4.559,1078.029),Vector3.new(-385.284,5.201,1082.955),Vector3.new(-383.171,4.559,1110.780)},center=2},
-    ["Shinjuku Island#1"]={coords={Vector3.new(684.111,1.882,-1715.860),Vector3.new(687.366,1.882,-1674.726),Vector3.new(654.620,1.882,-1733.495),Vector3.new(666.407,1.882,-1695.736),Vector3.new(650.193,1.882,-1671.640)},center=4},
-    ["Shinjuku Island#2"]={coords={Vector3.new(-41.329,1.880,-1816.006),Vector3.new(4.006,1.796,-1864.215),Vector3.new(-18.397,1.835,-1845.567),Vector3.new(-3.303,1.877,-1810.039),Vector3.new(-26.961,1.862,-1875.934)},center=3},
-    ["Slime"]            ={coords={Vector3.new(-1144.351,18.917,364.112),Vector3.new(-1111.960,13.918,354.755),Vector3.new(-1124.753,13.918,371.231),Vector3.new(-1136.075,21.067,388.744),Vector3.new(-1103.583,13.918,379.100)},center=3},
-    ["Academy"]          ={coords={Vector3.new(1074.662,2.370,1250.483),Vector3.new(1046.124,1.463,1252.839),Vector3.new(1072.546,1.778,1275.642),Vector3.new(1095.647,1.463,1296.464),Vector3.new(1058.373,1.463,1297.346)},center=3},
-    ["Judgement"]        ={coords={Vector3.new(-1268.647,1.307,-1161.301),Vector3.new(-1296.867,1.157,-1201.466),Vector3.new(-1240.514,1.138,-1176.326),Vector3.new(-1274.657,1.173,-1191.390),Vector3.new(-1260.848,1.333,-1219.831)},center=4},
-    ["Soul Dominion"]    ={coords={Vector3.new(-1331.364,1603.565,1567.672),Vector3.new(-1314.989,1603.565,1595.409),Vector3.new(-1373.717,1604.229,1618.792),Vector3.new(-1339.529,1603.565,1617.110),Vector3.new(-1374.362,1603.551,1584.912)},center=4},
-    ["Ninja"]            ={coords={Vector3.new(-1859.595,8.505,-753.854),Vector3.new(-1895.911,8.503,-724.515),Vector3.new(-1852.629,8.552,-718.633),Vector3.new(-1876.007,8.501,-738.603),Vector3.new(-1907.969,8.497,-748.339)},center=4},
-    ["Lawless"]          ={coords={Vector3.new(47.442,-0.995,1793.444),Vector3.new(59.851,0.579,1816.135),Vector3.new(38.152,-0.196,1817.528),Vector3.new(68.066,-0.262,1801.037),Vector3.new(50.611,-0.448,1843.215)},center=2},
+local TELEPORT_LOCATIONS = {
+    "Starter","Jungle","Desert","Snow",
+    "Sailor","Shibuya","HollowIsland","Boss",
+    "Dungeon","Shinjuku","Slime","Academy",
+    "Judgement","Ninja","Lawless","Tower",
 }
 
-local ISLAND_TP={
-    ["Starter Island"]   ="Starter",    ["Jungle Island"]    ="Jungle",
-    ["Desert Island"]    ="Desert",     ["Snow Island"]      ="Snow",
-    ["Shibuya"]          ="Shibuya",    ["Hollow"]           ="HollowIsland",
-    ["Shinjuku Island#1"]="Shinjuku",   ["Shinjuku Island#2"]="Shinjuku",
-    ["Slime"]            ="Slime",      ["Academy"]          ="Academy",
-    ["Judgement"]        ="Judgement",  ["Soul Dominion"]    ="Dungeon",
-    ["Ninja"]            ="Ninja",      ["Lawless"]          ="Lawless",
+local FARM_ISLANDS = {
+    "Starter Island","Jungle Island","Desert Island","Snow Island",
+    "Shibuya","Hollow","Shinjuku Island#1","Shinjuku Island#2",
+    "Slime","Academy","Judgement","Soul Dominion","Ninja","Lawless",
 }
 
--- Boss data: keyword → portal TP + koordinat spawn + nama NPC
-local BOSS_DATA = {
-    {keys={"aizen"},              tpLoc="HollowIsland", coord=Vector3.new(-568.560,-1.921,1230.594),   npc="AizenBoss"},
-    {keys={"alucard"},            tpLoc="Starter",      coord=Vector3.new(249.629,7.593,930.764),      npc="AlucardBoss"},
-    {keys={"jinwoo"},             tpLoc="Starter",      coord=Vector3.new(249.629,7.593,930.764),      npc="JinwooBoss"},
-    {keys={"sukuna"},             tpLoc="Shibuya",      coord=Vector3.new(1535.394,8.486,224.764),     npc="SukunaBoss"},
-    {keys={"yuji"},               tpLoc="Shibuya",      coord=Vector3.new(1573.553,72.721,-32.995),    npc="YujiBoss"},
-    {keys={"gojo"},               tpLoc="Shibuya",      coord=Vector3.new(1854.535,8.486,338.636),     npc="GojoBoss"},
-    {keys={"knight"},             tpLoc=nil,            coord=Vector3.new(771.258,-0.667,-1078.480),   npc="KnightBoss"},
-    {keys={"yamato"},             tpLoc="Judgement",    coord=Vector3.new(-1422.103,21.415,-1381.292), npc="YamatoBoss"},
-    {keys={"shinobi","strongest"},tpLoc="Ninja",        coord=Vector3.new(-2106.966,12.801,-595.638),  npc="StrongestShinobiBoss"},
+local KNOWN_BOSSES = {
+    "AizenBoss","AlucardBoss","JinwooBoss","SukunaBoss","YujiBoss",
+    "GojoBoss","KnightBoss","YamatoBoss","StrongestShinobiBoss",
 }
 
-local function getBossData(bossName)
-    if not bossName then return nil end
-    local lower=bossName:lower()
-    for _,e in ipairs(BOSS_DATA) do
-        for _,kw in ipairs(e.keys) do
-            if lower:find(kw,1,true) then return e end
+local function findTimerTextLabel(container)
+    for _,desc in ipairs(container:GetDescendants()) do
+        if desc:IsA("TextLabel") then
+            local txt = desc.Text or ""
+            -- FIX (Bug #9): Accept MM:SS, M:SS, and HH:MM:SS formats
+            if txt:match("^%d+:%d%d$") or txt:match("^%d+:%d%d:%d%d$") then
+                return desc
+            end
         end
-        if e.npc and e.npc:lower()==lower then return e end
     end
     return nil
 end
 
-local function fireTP(loc)
-    pcall(function()
-        ReplicatedStorage:WaitForChild("Remotes")
-            :WaitForChild("TeleportToPortal"):FireServer(loc)
-    end)
-end
-
--- TP hanya jika jarak > 300 studs ke titik tujuan
-local function shouldTP(charPos, targetPos)
-    if not charPos then return true end
-    return (charPos - targetPos).Magnitude > 300
-end
-
-return function(refs, T)
-    local character=player.Character or player.CharacterAdded:Wait()
-
-    local function getRoot()
-        character=player.Character
-        if not character then return nil end
-        return character:FindFirstChild("HumanoidRootPart")
+local function parseTimerSecs(text)
+    if not text then return -1 end
+    -- HH:MM:SS
+    local h,m,s = text:match("^(%d+):(%d+):(%d+)$")
+    if h and m and s then
+        return tonumber(h)*3600 + tonumber(m)*60 + tonumber(s)
     end
+    -- MM:SS
+    local m2,s2 = text:match("^(%d+):(%d+)$")
+    if m2 and s2 then return tonumber(m2)*60 + tonumber(s2) end
+    return -1
+end
 
-    local function fireSettings(k,v)
+local function makeNotifier(gui, T, TweenService)
+    return function(title, subtitle, col)
         pcall(function()
-            ReplicatedStorage:WaitForChild("RemoteEvents")
-                :WaitForChild("SettingsToggle"):FireServer(k,v)
+            local snd=Instance.new("Sound")
+            snd.SoundId="rbxassetid://82845990304289"
+            snd.Volume=0.65; snd.Parent=workspace; snd:Play()
+            game:GetService("Debris"):AddItem(snd,6)
         end)
-    end
-    local function enableGS()
-        fireSettings("EnableQuestRepeat",true)
-        fireSettings("AutoQuestRepeat",true)
-        fireSettings("DisablePVP",true)
-    end
-    local function disableGS()
-        fireSettings("EnableQuestRepeat",false)
-        fireSettings("AutoQuestRepeat",false)
-        fireSettings("DisablePVP",false)
-    end
-
-    -- ── REMOTE CACHE ──────────────────────────────────────
-    local hitRemote=nil
-    local function getHitRemote()
-        if hitRemote then return hitRemote end
-        local ok,r=pcall(function()
-            return ReplicatedStorage:WaitForChild("CombatSystem",5)
-                :WaitForChild("Remotes",5):WaitForChild("RequestHit",5)
-        end)
-        if ok and r then hitRemote=r end
-        return hitRemote
-    end
-
-    local abilityRemote=nil
-    local function getAbilityRemote()
-        if abilityRemote then return abilityRemote end
-        local ok,r=pcall(function()
-            return ReplicatedStorage:WaitForChild("AbilitySystem",5)
-                :WaitForChild("Remotes",5):WaitForChild("RequestAbility",5)
-        end)
-        if ok and r then abilityRemote=r end
-        return abilityRemote
-    end
-
-    -- ── FLY (dideklarasi awal agar spin task bisa referensi flyBP/flyBG)
-    local flyBP,flyBG=nil,nil
-
-    -- ── INDEPENDENT SPIN TASK ─────────────────────────────
-    -- Aktif hanya ketika refs.getSpinOn() == true
-    task.spawn(function()
-        while true do
-            if refs.getSpinOn and refs.getSpinOn() then
-                local r=getRoot()
-                if r then
-                    for i=1,20 do
-                        if not (refs.getSpinOn and refs.getSpinOn()) then break end
-                        local rr=getRoot(); if not rr then break end
-                        local xTilt=(refs.getFaceDown and refs.getFaceDown()) and (math.pi/2) or 0
-                        local angle=(i/20)*math.pi*2
-                        local newCF=CFrame.new(rr.Position)*CFrame.fromEulerAnglesXYZ(xTilt,angle,0)
-                        rr.CFrame=newCF
-                        if flyBP then flyBP.Position=rr.Position end
-                        if flyBG then flyBG.CFrame=newCF end
-                        task.wait(0.003)
-                    end
-                end
+        local notif=Instance.new("Frame",gui)
+        notif.Size=UDim2.new(0,290,0,60)
+        notif.Position=UDim2.new(0.5,-145,0,-72)
+        notif.BackgroundColor3=Color3.fromRGB(12,11,20)
+        notif.BorderSizePixel=0; notif.ZIndex=600
+        Instance.new("UICorner",notif).CornerRadius=UDim.new(0,12)
+        local ns=Instance.new("UIStroke",notif)
+        ns.Color=col or T.green; ns.Thickness=1.4; ns.Transparency=0.1
+        local bar=Instance.new("Frame",notif)
+        bar.Size=UDim2.new(0,3,1,-14); bar.Position=UDim2.new(0,8,0,7)
+        bar.BackgroundColor3=col or T.green; bar.BorderSizePixel=0
+        Instance.new("UICorner",bar).CornerRadius=UDim.new(1,0)
+        local tl=Instance.new("TextLabel",notif)
+        tl.Size=UDim2.new(1,-28,0,22); tl.Position=UDim2.new(0,20,0,8)
+        tl.BackgroundTransparency=1; tl.Text=title
+        tl.TextColor3=T.white; tl.Font=Enum.Font.GothamBold
+        tl.TextSize=13; tl.TextXAlignment=Enum.TextXAlignment.Left; tl.ZIndex=601
+        local sl=Instance.new("TextLabel",notif)
+        sl.Size=UDim2.new(1,-28,0,14); sl.Position=UDim2.new(0,20,0,34)
+        sl.BackgroundTransparency=1; sl.Text=subtitle or ""
+        sl.TextColor3=T.textSub; sl.Font=Enum.Font.Gotham
+        sl.TextSize=10; sl.TextXAlignment=Enum.TextXAlignment.Left; sl.ZIndex=601
+        TweenService:Create(notif,TweenInfo.new(0.34,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
+            {Position=UDim2.new(0.5,-145,0,12)}):Play()
+        task.delay(4.5,function()
+            if notif and notif.Parent then
+                TweenService:Create(notif,TweenInfo.new(0.28,Enum.EasingStyle.Quint),
+                    {Position=UDim2.new(0.5,-145,0,-72)}):Play()
+                task.wait(0.32); pcall(function() notif:Destroy() end)
             end
-            task.wait(0.5)
+        end)
+    end
+end
+
+return function(lib, sideData, contentArea, bgF, root, rootCorner,
+                rootStroke, rootGlow, particleList, spawnParticles,
+                applyUIBgMode, applyMiniBgMode, gui)
+
+    local T            = lib.T
+    local UISettings   = lib.UISettings
+    local smooth       = lib.smooth
+    local ripple       = lib.ripple
+    local TweenService = game:GetService("TweenService")
+
+    local mkScrollPage   = lib.mkScrollPage
+    local mkTwoColLayout = lib.mkTwoColLayout
+    local mkGroupBox     = lib.mkGroupBox
+    local mkSectionLabel = lib.mkSectionLabel
+    local mkSection      = lib.mkSection
+    local mkStatus       = lib.mkStatus
+    local mkSlider       = lib.mkSlider
+    local mkToggle       = lib.mkToggle
+    local mkOnOffBtn     = lib.mkOnOffBtn
+    local mkDropdownV2   = lib.mkDropdownV2
+    local mkSubTabBar    = lib.mkSubTabBar
+
+    local showNotif = makeNotifier(gui, T, TweenService)
+
+    -- ════════════════════════════════
+    -- PAGE: INFO
+    -- ════════════════════════════════
+    local infoSF=mkScrollPage(sideData["Info"].page)
+    mkSection(infoSF,"Boss Countdown",1)
+
+    local irBtn=Instance.new("TextButton",infoSF)
+    irBtn.Size=UDim2.new(1,0,0,30); irBtn.BackgroundColor3=Color3.fromRGB(20,18,34)
+    irBtn.Text="Refresh Timer"; irBtn.TextColor3=T.textSub
+    irBtn.Font=Enum.Font.GothamBold; irBtn.TextSize=11; irBtn.BorderSizePixel=0
+    irBtn.LayoutOrder=2; irBtn.ZIndex=6
+    Instance.new("UICorner",irBtn).CornerRadius=UDim.new(0,8)
+    Instance.new("UIStroke",irBtn).Color=T.borderBright
+
+    local timerContainer=Instance.new("Frame",infoSF)
+    timerContainer.BackgroundTransparency=1; timerContainer.Size=UDim2.new(1,0,0,0)
+    timerContainer.AutomaticSize=Enum.AutomaticSize.Y; timerContainer.BorderSizePixel=0
+    timerContainer.LayoutOrder=3
+    local tcL=Instance.new("UIListLayout",timerContainer)
+    tcL.Padding=UDim.new(0,5); tcL.SortOrder=Enum.SortOrder.LayoutOrder
+
+    local timerEntries={}
+
+    local function buildTimerCards()
+        for _,c in ipairs(timerContainer:GetChildren()) do
+            if not c:IsA("UIListLayout") then c:Destroy() end
         end
+        timerEntries={}
+        local found=0
+        for _,child in ipairs(workspace:GetChildren()) do
+            local bossName=child.Name:match("^TimedBossSpawn_(.+)_Container$")
+            if bossName then
+                found=found+1
+                local timerLbl=findTimerTextLabel(child)
+                local card=Instance.new("Frame",timerContainer)
+                card.Size=UDim2.new(1,0,0,50); card.BackgroundColor3=Color3.fromRGB(14,13,22)
+                card.BorderSizePixel=0; card.LayoutOrder=found; card.ZIndex=5
+                Instance.new("UICorner",card).CornerRadius=UDim.new(0,10)
+                local cs=Instance.new("UIStroke",card); cs.Color=T.border; cs.Transparency=0.25; cs.Thickness=0.8
+                local abar=Instance.new("Frame",card)
+                abar.Size=UDim2.new(0,3,1,-14); abar.Position=UDim2.new(0,8,0,7)
+                abar.BackgroundColor3=T.accentDim; abar.BorderSizePixel=0
+                Instance.new("UICorner",abar).CornerRadius=UDim.new(1,0)
+                local nameL=Instance.new("TextLabel",card)
+                nameL.Size=UDim2.new(0.55,0,0,20); nameL.Position=UDim2.new(0,18,0,7)
+                nameL.BackgroundTransparency=1; nameL.Text=bossName
+                nameL.TextColor3=T.text; nameL.Font=Enum.Font.GothamBold
+                nameL.TextSize=12; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
+                local dispTimer=Instance.new("TextLabel",card)
+                dispTimer.Size=UDim2.new(0.45,-18,0,20); dispTimer.Position=UDim2.new(0.55,0,0,7)
+                dispTimer.BackgroundTransparency=1; dispTimer.Text=timerLbl and timerLbl.Text or "..."
+                dispTimer.TextColor3=T.accentGlow; dispTimer.Font=Enum.Font.GothamBold
+                dispTimer.TextSize=13; dispTimer.TextXAlignment=Enum.TextXAlignment.Right; dispTimer.ZIndex=6
+                local dispStatus=Instance.new("TextLabel",card)
+                dispStatus.Size=UDim2.new(1,-24,0,12); dispStatus.Position=UDim2.new(0,18,0,30)
+                dispStatus.BackgroundTransparency=1
+                dispStatus.Text=timerLbl and "Timer aktif" or "Belum ditemukan"
+                dispStatus.TextColor3=timerLbl and T.textDim or T.amber
+                dispStatus.Font=Enum.Font.Gotham; dispStatus.TextSize=9
+                dispStatus.TextXAlignment=Enum.TextXAlignment.Left; dispStatus.ZIndex=6
+                table.insert(timerEntries,{
+                    container=child, bossName=bossName,
+                    timerLbl=timerLbl, dispTimer=dispTimer,
+                    dispStatus=dispStatus, cardStroke=cs, accentBar=abar,
+                    prevSecs=-1,
+                })
+            end
+        end
+        if found==0 then
+            local el=Instance.new("TextLabel",timerContainer)
+            el.Size=UDim2.new(1,0,0,30); el.BackgroundTransparency=1
+            el.Text="Tidak ada TimedBossSpawn di workspace"
+            el.TextColor3=T.textDim; el.Font=Enum.Font.Gotham; el.TextSize=10; el.LayoutOrder=1
+        end
+    end
+    buildTimerCards()
+    irBtn.MouseButton1Click:Connect(function()
+        ripple(irBtn,irBtn.AbsoluteSize.X*0.5,irBtn.AbsoluteSize.Y*0.5,T.accent)
+        buildTimerCards()
     end)
-
-    -- ── FACE DOWN (update terus menerus saat farm aktif) ──
-    task.spawn(function()
-        while true do
-            if _G.islandFarmOn and refs.getFaceDown and refs.getFaceDown() then
-                local r=getRoot()
-                if r and flyBG then
-                    flyBG.CFrame=CFrame.new(r.Position)
-                        *CFrame.fromEulerAnglesXYZ(math.pi/2,0,0)
-                end
-            end
-            task.wait(0.05)
-        end
-    end)
-
-    local function enableFly()
-        character=player.Character; if not character then return end
-        local r=character:FindFirstChild("HumanoidRootPart")
-        local h=character:FindFirstChildOfClass("Humanoid")
-        if not r or not h then return end
-        h.PlatformStand=true
-        if flyBP then flyBP:Destroy() end
-        if flyBG then flyBG:Destroy() end
-        flyBP=Instance.new("BodyPosition")
-        flyBP.MaxForce=Vector3.new(1e5,1e5,1e5); flyBP.D=500; flyBP.P=5000
-        flyBP.Position=r.Position; flyBP.Parent=r
-        flyBG=Instance.new("BodyGyro")
-        flyBG.MaxTorque=Vector3.new(1e5,1e5,1e5); flyBG.D=400
-        flyBG.CFrame=r.CFrame; flyBG.Parent=r
-    end
-    local function disableFly()
-        if flyBP then flyBP:Destroy(); flyBP=nil end
-        if flyBG then flyBG:Destroy(); flyBG=nil end
-        character=player.Character; if not character then return end
-        local h=character:FindFirstChildOfClass("Humanoid")
-        if h then h.PlatformStand=false end
-    end
-    player.CharacterAdded:Connect(function(nc)
-        character=nc
-        if _G.islandFarmOn then task.wait(1); enableFly() end
-    end)
-
-    local function moveTo(targetPos,speed)
-        local r=getRoot(); if not r then return end
-        local dist=(r.Position-targetPos).Magnitude
-        if dist>80 then
-            local dur=math.max(0.3,dist/(speed or 150))
-            if flyBP then flyBP.Position=targetPos end
-            local tw=TweenService:Create(r,TweenInfo.new(dur,Enum.EasingStyle.Linear),
-                {CFrame=CFrame.new(targetPos)})
-            tw:Play(); tw.Completed:Wait()
-        else
-            r.CFrame=CFrame.new(targetPos)
-            if flyBP then flyBP.Position=targetPos end
-        end
-    end
-
-    -- ── HIT SPAM ──────────────────────────────────────────
-    local hitRunning=false
-    local function startHitSpam()
-        if hitRunning then return end
-        hitRunning=true
-        task.spawn(function()
-            local remote=getHitRemote()
-            if not remote then hitRunning=false; return end
-            while hitRunning do
-                pcall(function() remote:FireServer() end)
-                task.wait()
-            end
-        end)
-    end
-    local function stopHitSpam() hitRunning=false end
-
-    -- ── ABILITY LOOP (0.5s, tanpa spin) ───────────────────
-    local function startAbilityLoop(checkFn)
-        task.spawn(function()
-            local remote=getAbilityRemote()
-            while checkFn() do
-                if remote then
-                    for _,arg in ipairs({1,2,3}) do
-                        if not checkFn() then break end
-                        pcall(function() remote:FireServer(arg) end)
-                    end
-                end
-                task.wait(0.5)
-            end
-        end)
-    end
-
-    -- ── AUTO SKILL Z/X/C/V ────────────────────────────────
-    task.spawn(function()
-        local defs={{key="Z",arg=1},{key="X",arg=2},{key="C",arg=3},{key="V",arg=4}}
-        while true do
-            local remote=getAbilityRemote()
-            if remote then
-                for _,s in ipairs(defs) do
-                    if refs.getSkillOn and refs.getSkillOn(s.key) then
-                        pcall(function() remote:FireServer(s.arg) end)
-                    end
-                end
-            end
-            task.wait()
-        end
-    end)
-
-    -- ── AUTO QUEST (radius 100, dalam farm) ────────────────
-    local lastQuestNPC=nil
-    local function tryAutoQuest()
-        local r=getRoot(); if not r then return end
-        local svc=workspace:FindFirstChild("ServiceNPCs"); if not svc then return end
-        for i=1,19 do
-            local name="QuestNPC"..i
-            local npc=svc:FindFirstChild(name)
-            if npc then
-                local pos
-                if npc:IsA("Model") then
-                    local pp=npc.PrimaryPart or npc:FindFirstChildWhichIsA("BasePart")
-                    if pp then pos=pp.Position end
-                elseif npc:IsA("BasePart") then pos=npc.Position end
-                if pos and (r.Position-pos).Magnitude<=100 then
-                    if name~=lastQuestNPC then
-                        pcall(function()
-                            ReplicatedStorage:WaitForChild("RemoteEvents")
-                                :WaitForChild("QuestAccept"):FireServer(name)
-                        end)
-                        fireSettings("EnableQuestRepeat",true)
-                        fireSettings("AutoQuestRepeat",true)
-                        lastQuestNPC=name
-                    end
-                    return
-                end
-            end
-        end
-    end
-
-    -- ── FARM SETUP: TP hanya jika dist > 300 ──────────────
-    local function farmDoTP(island)
-        local data=ISLANDS[island]
-        if not data then return end
-        local tpLoc=ISLAND_TP[island]
-        if not tpLoc then return end
-        local r=getRoot()
-        local refPos=data.coords[data.center]
-        -- Hanya TP jika jarak ke titik tengah pulau > 300 studs
-        if r and not shouldTP(r.Position, refPos) then return end
-        fireTP(tpLoc)
-        task.wait(3)  -- tunggu load
-    end
-
-    -- ── STATE ─────────────────────────────────────────────
-    local farmV1On=false; local farmV2On=false
-    local isRunningV1=false; local isRunningV2=false
-    _G.islandFarmOn=false
-
-    local function farmLoopV1()
-        isRunningV1=true; _G.islandFarmOn=true; lastQuestNPC=nil
-        local island=refs.getIsland()
-        enableFly()
-        farmDoTP(island)  -- TP hanya jika dist > 300
-        if not farmV1On then
-            disableFly(); _G.islandFarmOn=false; isRunningV1=false
-            refs.setFarmOnOff(false); return
-        end
-        enableGS()
-        if refs.getAutoHitOn and refs.getAutoHitOn() then startHitSpam() end
-        startAbilityLoop(function() return farmV1On end)
-        while farmV1On do
-            island=refs.getIsland()
-            local data=ISLANDS[island]
-            if not data then task.wait(1); continue end
-            for i,pos in ipairs(data.coords) do
-                if not farmV1On then break end
-                local fp=Vector3.new(pos.X,pos.Y+refs.getHeight(),pos.Z)
-                moveTo(fp,refs.getSpeed())
-                tryAutoQuest()
-                task.wait(refs.getTD())
-            end
-            if not farmV1On then break end
-            local ld=refs.getLD()
-            if ld>0 then
-                local endT=tick()+ld
-                while tick()<endT and farmV1On do tryAutoQuest(); task.wait(0.5) end
-            end
-        end
-        stopHitSpam(); disableFly(); disableGS()
-        lastQuestNPC=nil; _G.islandFarmOn=false; isRunningV1=false
-        refs.setFarmOnOff(false)
-    end
-
-    local function farmLoopV2()
-        isRunningV2=true; _G.islandFarmOn=true; lastQuestNPC=nil
-        local island=refs.getIsland()
-        enableFly()
-        farmDoTP(island)
-        if not farmV2On then
-            disableFly(); _G.islandFarmOn=false; isRunningV2=false
-            refs.setFarmOnOff(false); return
-        end
-        enableGS()
-        if refs.getAutoHitOn and refs.getAutoHitOn() then startHitSpam() end
-        startAbilityLoop(function() return farmV2On end)
-        while farmV2On do
-            island=refs.getIsland()
-            local data=ISLANDS[island]
-            if not data then task.wait(1); continue end
-            local ci=data.center; local cpos=data.coords[ci]
-            local fp=Vector3.new(cpos.X,cpos.Y+refs.getHeight(),cpos.Z)
-            moveTo(fp,refs.getSpeed())
-            tryAutoQuest()
-            local ld=refs.getLD()
-            if ld>0 then
-                local endT=tick()+ld
-                while tick()<endT and farmV2On do tryAutoQuest(); task.wait(0.5) end
-            else task.wait(0.5) end
-        end
-        stopHitSpam(); disableFly(); disableGS()
-        lastQuestNPC=nil; _G.islandFarmOn=false; isRunningV2=false
-        refs.setFarmOnOff(false)
-    end
 
     task.spawn(function()
-        local wasV1,wasV2=false,false
-        while task.wait(0.2) do
-            if farmV1On and not wasV1 then
-                farmV2On=false
-                if not isRunningV1 then task.spawn(farmLoopV1) end
-            elseif not farmV1On and wasV1 then disableFly(); disableGS() end
-            if farmV2On and not wasV2 then
-                farmV1On=false
-                if not isRunningV2 then task.spawn(farmLoopV2) end
-            elseif not farmV2On and wasV2 then disableFly(); disableGS() end
-            wasV1=farmV1On; wasV2=farmV2On
-        end
-    end)
-
-    -- ── BOSS KILL ─────────────────────────────────────────
-    local bossKillOn=false
-    local bossFlyBP,bossFlyBG=nil,nil
-
-    local function enableBossFly()
-        local r=getRoot()
-        local h=character and character:FindFirstChildOfClass("Humanoid")
-        if not r or not h then return end
-        h.PlatformStand=true
-        if bossFlyBP then bossFlyBP:Destroy() end
-        if bossFlyBG then bossFlyBG:Destroy() end
-        bossFlyBP=Instance.new("BodyPosition")
-        bossFlyBP.MaxForce=Vector3.new(1e5,1e5,1e5); bossFlyBP.D=600; bossFlyBP.P=6000
-        bossFlyBP.Position=r.Position; bossFlyBP.Parent=r
-        bossFlyBG=Instance.new("BodyGyro")
-        bossFlyBG.MaxTorque=Vector3.new(1e5,1e5,1e5); bossFlyBG.D=500
-        bossFlyBG.CFrame=r.CFrame; bossFlyBG.Parent=r
-    end
-    local function disableBossFly()
-        if bossFlyBP then bossFlyBP:Destroy(); bossFlyBP=nil end
-        if bossFlyBG then bossFlyBG:Destroy(); bossFlyBG=nil end
-        local h=character and character:FindFirstChildOfClass("Humanoid")
-        if h and not _G.islandFarmOn then h.PlatformStand=false end
-    end
-
-    local function getBossPart(npcName)
-        local npcs=workspace:FindFirstChild("NPCs"); if not npcs then return nil end
-        local folder=npcs:FindFirstChild(npcName); if not folder then return nil end
-        return folder.PrimaryPart or folder:FindFirstChildWhichIsA("BasePart",true)
-    end
-
-    local function bossKillLoop()
-        local bossName=refs.getSelectedBoss()
-        if not bossName then
-            refs.setBossStat("Pilih boss dulu!",T.red)
-            refs.setBossOnOff(false); bossKillOn=false; return
-        end
-        local data=getBossData(bossName)
-        if not data then
-            refs.setBossStat("Data boss tidak ada!",T.red)
-            refs.setBossOnOff(false); bossKillOn=false; return
-        end
-
-        local npcName=data.npc; local bossCoord=data.coord; local tpLoc=data.tpLoc
-
-        -- STEP 1: TP portal — hanya jika dist > 300 studs ke koordinat boss
-        if tpLoc then
-            local r=getRoot()
-            local dist=r and (r.Position-bossCoord).Magnitude or 999
-            if dist>300 then
-                refs.setBossPhase("Teleporting…",T.amber)
-                refs.setBossStat("TP ke "..tpLoc,T.amber)
-                fireTP(tpLoc)
-                for i=3,1,-1 do
-                    if not bossKillOn then
-                        refs.setBossStat("Idle",T.textDim); refs.setBossPhase("--",T.textDim)
-                        return
-                    end
-                    refs.setBossStat("Load… "..i.."s",T.amber)
-                    task.wait(1)
-                end
-            end
-        end
-        if not bossKillOn then
-            refs.setBossStat("Idle",T.textDim); refs.setBossPhase("--",T.textDim); return
-        end
-
-        -- STEP 2: Enable fly + TP ke koordinat boss langsung
-        enableBossFly()
-        refs.setBossPhase("Mendekat…",T.accentGlow)
-        local r=getRoot()
-        if r then
-            r.CFrame=CFrame.new(bossCoord+Vector3.new(0,5,0))
-            if bossFlyBP then bossFlyBP.Position=bossCoord+Vector3.new(0,5,0) end
-        end
-        task.wait(0.5)
-
-        -- STEP 3: Spam RequestHit di background
-        local bossHitRun=true
-        task.spawn(function()
-            local remote=getHitRemote()
-            while bossHitRun and bossKillOn do
-                if remote then pcall(function() remote:FireServer() end) end
-                task.wait()
-            end
-        end)
-
-        -- STEP 4: Tween ke boss, cek setiap 0.5s
-        -- FIX: Stop LANGSUNG ketika path NPC hilang (tidak ada timeout)
-        refs.setBossPhase("Menyerang",T.green)
-        while bossKillOn do
-            local bossPart=getBossPart(npcName)
-
-            -- Path boss hilang → stop langsung
-            if not bossPart then
-                refs.setBossStat(npcName.." — selesai",T.green)
-                refs.setBossPhase("Boss hilang",T.green)
-                break
-            end
-
-            local rr=getRoot()
-            if not rr then task.wait(0.5); continue end
-            local bossPos=bossPart.Position
-            local dist=(rr.Position-bossPos).Magnitude
-            refs.setBossStat(npcName.." | "..math.floor(dist).."st",T.green)
-
-            local target=bossPos+Vector3.new(0,3,0)
-            if bossFlyBP then bossFlyBP.Position=target end
-            if dist>4 then
-                local dur=math.clamp(dist/70,0.05,0.6)
-                TweenService:Create(rr,TweenInfo.new(dur,Enum.EasingStyle.Linear),
-                    {CFrame=CFrame.new(target)}):Play()
-            end
-            task.wait(0.5)  -- cek keberadaan boss setiap 0.5 detik
-        end
-
-        bossHitRun=false
-        disableBossFly()
-        refs.setBossStat("Idle",T.textDim); refs.setBossPhase("--",T.textDim)
-        refs.setBossOnOff(false); bossKillOn=false
-    end
-
-    -- ── DUNGEON (nearest NPC) ─────────────────────────────
-    local dungeonOn=false
-    local dungeonHitRun=false
-    local activeDungeonTween=nil
-
-    local function findNearestNPC(folder)
-        local r=getRoot(); if not r then return nil end
-        local best,bestDist=nil,math.huge
-        for _,npc in ipairs(folder:GetChildren()) do
-            local part=(npc:IsA("BasePart") and npc)
-                or npc.PrimaryPart
-                or npc:FindFirstChildWhichIsA("BasePart",true)
-            if part then
-                local d=(r.Position-part.Position).Magnitude
-                if d<bestDist then bestDist=d; best=npc end
-            end
-        end
-        return best
-    end
-
-    local function dungeonLoop()
-        dungeonHitRun=true
-        task.spawn(function()
-            local remote=getHitRemote()
-            if not remote then
-                refs.setDungeonStat("Remote tidak ditemukan!",T.red)
-                dungeonHitRun=false; dungeonOn=false; refs.setDungeonOnOff(false); return
-            end
-            local count=0; local lastT=tick()
-            while dungeonHitRun do
-                pcall(function() remote:FireServer() end)
-                count=count+1
-                if tick()-lastT>=0.5 then
-                    refs.setDungeonHit(tostring(count*2).."/s",T.green)
-                    count=0; lastT=tick()
-                end
-                task.wait()
-            end
-            refs.setDungeonHit("0/s",T.textDim)
-        end)
-
-        startAbilityLoop(function() return dungeonOn end)
-
-        task.spawn(function()
-            while dungeonOn do
-                local folder=workspace:FindFirstChild("NPCs")
-                if not folder or #folder:GetChildren()==0 then
-                    refs.setDungeonStat("Tidak ada NPC",T.textDim); task.wait(0.5); continue
-                end
-                -- Cari NPC terdekat dari posisi saat ini
-                local npc=findNearestNPC(folder)
-                if not npc or not npc.Parent then task.wait(0.3); continue end
-                local part=(npc:IsA("BasePart") and npc)
-                    or npc.PrimaryPart
-                    or npc:FindFirstChildWhichIsA("BasePart",true)
-                if not part then task.wait(0.3); continue end
-                local r=getRoot(); if not r then task.wait(0.2); continue end
-                refs.setDungeonStat("Running",T.green)
-                refs.setDungeonNPC(npc.Name,T.accentGlow)
-                local target=part.Position+Vector3.new(0,2,0)
-                local dist=(r.Position-target).Magnitude
-                local dur=math.max(0.15,dist/100)
-                if activeDungeonTween then pcall(function() activeDungeonTween:Cancel() end) end
-                activeDungeonTween=TweenService:Create(r,
-                    TweenInfo.new(dur,Enum.EasingStyle.Linear),{CFrame=CFrame.new(target)})
-                activeDungeonTween:Play()
-                local elapsed=0
-                while elapsed<1 and dungeonOn and npc and npc.Parent do
-                    task.wait(0.1); elapsed=elapsed+0.1
-                end
+        while infoSF and infoSF.Parent do
+            for _,e in ipairs(timerEntries) do
                 pcall(function()
-                    if activeDungeonTween then activeDungeonTween:Cancel(); activeDungeonTween=nil end
+                    if not e.timerLbl or not e.timerLbl.Parent then
+                        local f=findTimerTextLabel(e.container)
+                        if f then e.timerLbl=f; e.dispStatus.Text="Timer OK"; e.dispStatus.TextColor3=T.green
+                        else e.dispTimer.Text="?"; e.dispStatus.Text="Belum ada timer"; e.dispStatus.TextColor3=T.amber; return end
+                    end
+                    local txt=e.timerLbl.Text or ""
+                    e.dispTimer.Text=(txt~="" and txt or "?")
+                    local secs=parseTimerSecs(txt)
+                    if secs==0 and e.prevSecs>0 then
+                        showNotif(e.bossName.." has spawned!", "Boss telah muncul!", T.green)
+                    end
+                    e.prevSecs=secs
+                    if secs<0 then
+                        e.dispTimer.TextColor3=T.textDim; e.dispStatus.Text="Format: "..txt
+                        smooth(e.cardStroke,{Color=T.border},0.3):Play(); smooth(e.accentBar,{BackgroundColor3=T.textDim},0.3):Play()
+                    elseif secs==0 then
+                        e.dispTimer.TextColor3=T.green; e.dispStatus.Text="Spawn sekarang!"
+                        smooth(e.cardStroke,{Color=T.green},0.3):Play(); smooth(e.accentBar,{BackgroundColor3=T.green},0.3):Play()
+                    elseif secs<60 then
+                        e.dispTimer.TextColor3=T.amber; e.dispStatus.Text="Segera spawn!"
+                        smooth(e.cardStroke,{Color=T.amber},0.3):Play(); smooth(e.accentBar,{BackgroundColor3=T.amber},0.3):Play()
+                    else
+                        e.dispTimer.TextColor3=T.accentGlow; e.dispStatus.Text="Menunggu..."
+                        smooth(e.cardStroke,{Color=T.border},0.3):Play(); smooth(e.accentBar,{BackgroundColor3=T.accentDim},0.3):Play()
+                    end
                 end)
-                task.wait(0.05)
             end
-            refs.setDungeonStat("Idle",T.textDim); refs.setDungeonNPC("--",T.textDim)
-        end)
+            task.wait(1)
+        end
+    end)
+
+    -- ════════════════════════════════
+    -- PAGE: MAIN
+    -- ════════════════════════════════
+    local mainPage=sideData["Main"].page
+    local mainInner=Instance.new("Frame",mainPage)
+    mainInner.Size=UDim2.new(1,-8,1,-8); mainInner.Position=UDim2.new(0,4,0,4)
+    mainInner.BackgroundTransparency=1; mainInner.ZIndex=3
+
+    local subPages=mkSubTabBar(mainInner,{"Farm","TP","Boss","Dungeon"})
+
+    -- ════════════════════════════════
+    -- FARM
+    -- ════════════════════════════════
+    local leftF,rightF = mkTwoColLayout(subPages["Farm"], T.border)
+
+    local farmGroup=mkGroupBox(leftF,1)
+    mkSectionLabel(farmGroup,"Pulau & Mode",1)
+    local _,getIsland=mkDropdownV2(
+        farmGroup,"Pulau","*",Color3.fromRGB(78,46,200),
+        FARM_ISLANDS,"Starter Island",nil,2)
+    local _,getFarmMode=mkDropdownV2(
+        farmGroup,"Mode","o",Color3.fromRGB(50,130,200),
+        {"V1 - Semua Titik","V2 - Titik Tengah"},"V1 - Semua Titik",nil,3)
+    local farmOnOffBtn,setFarmOnOff,getFarmOn,setFarmCallback=
+        mkOnOffBtn(farmGroup,"Auto Farm + Quest",4)
+    local _,_,getAutoHitOn=mkToggle(farmGroup,"Auto Hit",false,nil,5)
+
+    local modeGroup=mkGroupBox(leftF,2)
+    mkSectionLabel(modeGroup,"Testing Mode",1)
+    local _,_,getFaceDown=mkToggle(modeGroup,"Face Down",false,nil,2)
+    local _,_,getSpinOn  =mkToggle(modeGroup,"Auto Spin HRP",false,nil,3)
+
+    local skillGroup=mkGroupBox(leftF,3)
+    mkSectionLabel(skillGroup,"Auto Skill",1)
+    local skillOn={Z=false,X=false,C=false,V=false}
+    mkToggle(skillGroup,"Z",false,function(v) skillOn.Z=v end,2)
+    mkToggle(skillGroup,"X",false,function(v) skillOn.X=v end,3)
+    mkToggle(skillGroup,"C",false,function(v) skillOn.C=v end,4)
+    mkToggle(skillGroup,"V",false,function(v) skillOn.V=v end,5)
+
+    mkSection(rightF,"Adjust",1)
+    local _,setHeight,getHeight=mkSlider(rightF,"Height",0,50,0," st",nil,2)
+    local _,setSpeed, getSpeed =mkSlider(rightF,"Speed",20,500,150," st/s",nil,3)
+    local _,setTD,    getTD    =mkSlider(rightF,"Jeda",1,10,1,"s",nil,4)
+    local _,setLD,    getLD    =mkSlider(rightF,"Loop Delay",0,10,3,"s",nil,5)
+
+    -- ════════════════════════════════
+    -- TP
+    -- ════════════════════════════════
+    local tpLeftF, tpRightF = mkTwoColLayout(subPages["TP"], T.border)
+
+    local tpStatCard=Instance.new("Frame",tpLeftF)
+    tpStatCard.Size=UDim2.new(1,0,0,24); tpStatCard.BackgroundTransparency=1
+    tpStatCard.BorderSizePixel=0; tpStatCard.LayoutOrder=0
+    local tpStatLbl=Instance.new("TextLabel",tpStatCard)
+    tpStatLbl.Size=UDim2.new(1,0,1,0); tpStatLbl.BackgroundTransparency=1
+    tpStatLbl.Text="Pilih lokasi"; tpStatLbl.TextColor3=T.textDim
+    tpStatLbl.Font=Enum.Font.Gotham; tpStatLbl.TextSize=10
+    tpStatLbl.TextXAlignment=Enum.TextXAlignment.Center
+
+    local tpStatR=Instance.new("Frame",tpRightF)
+    tpStatR.Size=UDim2.new(1,0,0,24); tpStatR.BackgroundTransparency=1
+    tpStatR.BorderSizePixel=0; tpStatR.LayoutOrder=0
+
+    local function setTPStat(txt,col)
+        tpStatLbl.Text=txt or "--"
+        if col then smooth(tpStatLbl,{TextColor3=col},0.15):Play() end
     end
 
-    -- ── CALLBACKS ─────────────────────────────────────────
-    refs.setFarmCallback(function(v)
-        local mode=refs.getFarmMode()
-        if v then
-            if mode=="V2 - Titik Tengah" then farmV2On=true; farmV1On=false
-            else farmV1On=true; farmV2On=false end
-        else
-            farmV1On=false; farmV2On=false
-            stopHitSpam(); lastQuestNPC=nil
-        end
-    end)
+    local function makeTpCard(parent,loc,order)
+        local card=Instance.new("Frame",parent)
+        card.Size=UDim2.new(1,0,0,40); card.BackgroundColor3=T.card
+        card.BorderSizePixel=0; card.LayoutOrder=order; card.ZIndex=5
+        Instance.new("UICorner",card).CornerRadius=UDim.new(0,9)
+        local cs=Instance.new("UIStroke",card); cs.Color=T.border; cs.Transparency=0.5; cs.Thickness=0.8
+        local ibar=Instance.new("Frame",card)
+        ibar.Size=UDim2.new(0,2,0,20); ibar.Position=UDim2.new(0,6,0.5,0)
+        ibar.AnchorPoint=Vector2.new(0,0.5); ibar.BackgroundColor3=T.textDim; ibar.BorderSizePixel=0
+        Instance.new("UICorner",ibar).CornerRadius=UDim.new(1,0)
+        local nameLbl=Instance.new("TextLabel",card)
+        nameLbl.Size=UDim2.new(1,-54,1,0); nameLbl.Position=UDim2.new(0,14,0,0)
+        nameLbl.BackgroundTransparency=1; nameLbl.Text=loc
+        nameLbl.TextColor3=T.text; nameLbl.Font=Enum.Font.GothamBold
+        nameLbl.TextSize=11; nameLbl.TextXAlignment=Enum.TextXAlignment.Left; nameLbl.ZIndex=6
+        local goBtn=Instance.new("TextButton",card)
+        goBtn.Size=UDim2.new(0,36,0,22); goBtn.Position=UDim2.new(1,-40,0.5,0)
+        goBtn.AnchorPoint=Vector2.new(0,0.5)
+        goBtn.BackgroundColor3=Color3.fromRGB(35,155,110)
+        goBtn.Text="GO"; goBtn.TextColor3=T.white; goBtn.Font=Enum.Font.GothamBold
+        goBtn.TextSize=10; goBtn.BorderSizePixel=0; goBtn.ZIndex=7
+        Instance.new("UICorner",goBtn).CornerRadius=UDim.new(0,6)
+        Instance.new("UIGradient",goBtn).Color=ColorSequence.new{
+            ColorSequenceKeypoint.new(0,Color3.fromRGB(50,188,135)),
+            ColorSequenceKeypoint.new(1,Color3.fromRGB(28,138,92)),
+        }
+        card.MouseEnter:Connect(function()
+            smooth(card,{BackgroundColor3=T.cardHover},0.1):Play()
+            smooth(cs,{Color=T.accentGlow,Transparency=0.15},0.1):Play()
+            smooth(ibar,{BackgroundColor3=T.accentGlow},0.1):Play()
+        end)
+        card.MouseLeave:Connect(function()
+            smooth(card,{BackgroundColor3=T.card},0.1):Play()
+            smooth(cs,{Color=T.border,Transparency=0.5},0.1):Play()
+            smooth(ibar,{BackgroundColor3=T.textDim},0.1):Play()
+        end)
+        goBtn.MouseButton1Down:Connect(function() smooth(goBtn,{Size=UDim2.new(0,32,0,18)},0.07):Play() end)
+        goBtn.MouseButton1Up:Connect(function()   smooth(goBtn,{Size=UDim2.new(0,36,0,22)},0.12):Play() end)
+        goBtn.MouseLeave:Connect(function()       smooth(goBtn,{Size=UDim2.new(0,36,0,22)},0.12):Play() end)
+        local ci=loc
+        goBtn.MouseButton1Click:Connect(function()
+            ripple(goBtn,goBtn.AbsoluteSize.X*0.5,goBtn.AbsoluteSize.Y*0.5,T.white)
+            setTPStat("Teleporting to "..ci,T.amber)
+            pcall(function()
+                game:GetService("ReplicatedStorage"):WaitForChild("Remotes")
+                    :WaitForChild("TeleportToPortal"):FireServer(ci)
+            end)
+            task.delay(1.5,function() setTPStat("Arrived: "..ci,T.green) end)
+        end)
+        return card
+    end
 
-    refs.setBossCallback(function(v)
-        bossKillOn=v
-        if v then
-            task.spawn(bossKillLoop)
-        else
-            bossKillOn=false; disableBossFly()
-            refs.setBossStat("Idle",T.textDim); refs.setBossPhase("--",T.textDim)
-        end
-    end)
+    for i=1,8  do makeTpCard(tpLeftF,  TELEPORT_LOCATIONS[i],   i) end
+    for i=9,16 do makeTpCard(tpRightF, TELEPORT_LOCATIONS[i], i-8) end
 
-    refs.setDungeonCallback(function(v)
-        dungeonOn=v
-        if v then
-            task.spawn(dungeonLoop)
-        else
-            dungeonOn=false; dungeonHitRun=false
-            if activeDungeonTween then
-                pcall(function() activeDungeonTween:Cancel(); activeDungeonTween=nil end)
-            end
-            refs.setDungeonStat("Idle",T.textDim)
-            refs.setDungeonNPC("--",T.textDim)
-            refs.setDungeonHit("0/s",T.textDim)
+    -- ════════════════════════════════
+    -- BOSS
+    -- ════════════════════════════════
+    local bossLeftF, bossRightF = mkTwoColLayout(subPages["Boss"], T.border)
+
+    local bossCtrlGroup=mkGroupBox(bossLeftF,1)
+    mkSectionLabel(bossCtrlGroup,"Control",1)
+
+    local bossStatLbl=Instance.new("TextLabel",bossCtrlGroup)
+    bossStatLbl.Size=UDim2.new(1,0,0,18); bossStatLbl.BackgroundTransparency=1
+    bossStatLbl.Text="Idle"; bossStatLbl.TextColor3=T.textDim
+    bossStatLbl.Font=Enum.Font.Gotham; bossStatLbl.TextSize=10
+    bossStatLbl.TextXAlignment=Enum.TextXAlignment.Center; bossStatLbl.LayoutOrder=2
+
+    local bossPhaseLbl=Instance.new("TextLabel",bossCtrlGroup)
+    bossPhaseLbl.Size=UDim2.new(1,0,0,14); bossPhaseLbl.BackgroundTransparency=1
+    bossPhaseLbl.Text="--"; bossPhaseLbl.TextColor3=T.textDim
+    bossPhaseLbl.Font=Enum.Font.GothamBold; bossPhaseLbl.TextSize=9
+    bossPhaseLbl.TextXAlignment=Enum.TextXAlignment.Center; bossPhaseLbl.LayoutOrder=3
+
+    local function setBossStat(txt,col)
+        bossStatLbl.Text=txt or "Idle"
+        if col then smooth(bossStatLbl,{TextColor3=col},0.15):Play() end
+    end
+    local function setBossPhase(txt,col)
+        bossPhaseLbl.Text=txt or "--"
+        if col then smooth(bossPhaseLbl,{TextColor3=col},0.15):Play() end
+    end
+
+    local bossOnOffBtn,setBossOnOff,getBossOn,setBossCallback=
+        mkOnOffBtn(bossCtrlGroup,"Auto Kill Boss",4)
+
+    local bossListGroup=mkGroupBox(bossLeftF,2)
+    mkSectionLabel(bossListGroup,"Pilih Boss (1-5)",1)
+
+    -- FIX (Bug #10): Meaningful label for right column boss group
+    local bossRightGroup=mkGroupBox(bossRightF,1)
+    mkSectionLabel(bossRightGroup,"Pilih Boss (6-9)",1)
+
+    local selectedBoss=nil
+    local bossCards={}
+
+    -- FIX (Bug #2): forward declare rebuildBossCards as local
+    local rebuildBossCards
+    rebuildBossCards = function()
+        for _,c in ipairs(bossCards) do pcall(function() c:Destroy() end) end
+        bossCards={}
+        for idx,bossName in ipairs(KNOWN_BOSSES) do
+            local parent = idx<=5 and bossListGroup or bossRightGroup
+            local order  = idx<=5 and (idx+1) or (idx-5+1)
+            local isSel=(selectedBoss==bossName)
+            local card=Instance.new("Frame",parent)
+            card.Size=UDim2.new(1,0,0,36)
+            card.BackgroundColor3=isSel and Color3.fromRGB(32,22,58) or Color3.fromRGB(14,13,22)
+            card.BorderSizePixel=0; card.LayoutOrder=order; card.ZIndex=5
+            Instance.new("UICorner",card).CornerRadius=UDim.new(0,8)
+            local cs=Instance.new("UIStroke",card)
+            cs.Color=isSel and T.accentGlow or T.border
+            cs.Transparency=isSel and 0.1 or 0.5; cs.Thickness=isSel and 1.2 or 0.8
+            local lbar=Instance.new("Frame",card)
+            lbar.Size=UDim2.new(0,2,0,18); lbar.Position=UDim2.new(0,6,0.5,0)
+            lbar.AnchorPoint=Vector2.new(0,0.5)
+            lbar.BackgroundColor3=isSel and T.accentGlow or T.textDim
+            lbar.BorderSizePixel=0
+            Instance.new("UICorner",lbar).CornerRadius=UDim.new(1,0)
+            local nameL=Instance.new("TextLabel",card)
+            nameL.Size=UDim2.new(1,-58,1,0); nameL.Position=UDim2.new(0,14,0,0)
+            nameL.BackgroundTransparency=1; nameL.Text=bossName
+            nameL.TextColor3=isSel and T.white or T.textSub
+            nameL.Font=isSel and Enum.Font.GothamBold or Enum.Font.Gotham
+            nameL.TextSize=10; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
+            local selBtn=Instance.new("TextButton",card)
+            selBtn.Size=UDim2.new(0,44,0,22); selBtn.Position=UDim2.new(1,-48,0.5,0)
+            selBtn.AnchorPoint=Vector2.new(0,0.5)
+            selBtn.BackgroundColor3=isSel and T.accentSoft or Color3.fromRGB(24,22,38)
+            selBtn.Text=isSel and "On" or "Pilih"; selBtn.TextColor3=T.white
+            selBtn.Font=Enum.Font.GothamBold; selBtn.TextSize=9
+            selBtn.BorderSizePixel=0; selBtn.ZIndex=7
+            Instance.new("UICorner",selBtn).CornerRadius=UDim.new(0,6)
+            local ci=bossName
+            selBtn.MouseButton1Click:Connect(function()
+                selectedBoss=ci
+                ripple(selBtn,selBtn.AbsoluteSize.X*0.5,selBtn.AbsoluteSize.Y*0.5,T.accent)
+                rebuildBossCards()
+            end)
+            table.insert(bossCards,card)
         end
-    end)
+    end
+    rebuildBossCards()
+
+    -- ════════════════════════════════
+    -- DUNGEON
+    -- ════════════════════════════════
+    local dungeonSF=mkScrollPage(subPages["Dungeon"])
+
+    local dStatCard=Instance.new("Frame",dungeonSF)
+    dStatCard.Size=UDim2.new(1,0,0,18); dStatCard.BackgroundTransparency=1
+    dStatCard.LayoutOrder=1; dStatCard.BorderSizePixel=0
+    local dungeonStatLbl=Instance.new("TextLabel",dStatCard)
+    dungeonStatLbl.Size=UDim2.new(1,0,1,0); dungeonStatLbl.BackgroundTransparency=1
+    dungeonStatLbl.Text="Idle"; dungeonStatLbl.TextColor3=T.textDim
+    dungeonStatLbl.Font=Enum.Font.Gotham; dungeonStatLbl.TextSize=10
+    dungeonStatLbl.TextXAlignment=Enum.TextXAlignment.Center
+
+    local dNPCCard=Instance.new("Frame",dungeonSF)
+    dNPCCard.Size=UDim2.new(1,0,0,14); dNPCCard.BackgroundTransparency=1
+    dNPCCard.LayoutOrder=2; dNPCCard.BorderSizePixel=0
+    local dungeonNPCLbl=Instance.new("TextLabel",dNPCCard)
+    dungeonNPCLbl.Size=UDim2.new(1,0,1,0); dungeonNPCLbl.BackgroundTransparency=1
+    dungeonNPCLbl.Text="NPC: --"; dungeonNPCLbl.TextColor3=T.textDim
+    dungeonNPCLbl.Font=Enum.Font.Gotham; dungeonNPCLbl.TextSize=9
+    dungeonNPCLbl.TextXAlignment=Enum.TextXAlignment.Center
+
+    local dHitCard=Instance.new("Frame",dungeonSF)
+    dHitCard.Size=UDim2.new(1,0,0,14); dHitCard.BackgroundTransparency=1
+    dHitCard.LayoutOrder=3; dHitCard.BorderSizePixel=0
+    local dungeonHitLbl=Instance.new("TextLabel",dHitCard)
+    dungeonHitLbl.Size=UDim2.new(1,0,1,0); dungeonHitLbl.BackgroundTransparency=1
+    dungeonHitLbl.Text="0/s"; dungeonHitLbl.TextColor3=T.textDim
+    dungeonHitLbl.Font=Enum.Font.Gotham; dungeonHitLbl.TextSize=9
+    dungeonHitLbl.TextXAlignment=Enum.TextXAlignment.Center
+
+    local function setDungeonStat(txt,col) dungeonStatLbl.Text=txt or "Idle"; if col then smooth(dungeonStatLbl,{TextColor3=col},0.15):Play() end end
+    local function setDungeonNPC(txt,col)  dungeonNPCLbl.Text="NPC: "..(txt or "--"); if col then smooth(dungeonNPCLbl,{TextColor3=col},0.15):Play() end end
+    local function setDungeonHit(txt,col)  dungeonHitLbl.Text=txt or "0/s"; if col then smooth(dungeonHitLbl,{TextColor3=col},0.15):Play() end end
+
+    local dungeonOnOffBtn,setDungeonOnOff,getDungeonOn,setDungeonCallback=
+        mkOnOffBtn(dungeonSF,"Auto Dungeon",4)
+
+    -- ════════════════════════════════
+    -- PAGE: SETTINGS
+    -- ════════════════════════════════
+    local settingsSF=mkScrollPage(sideData["Settings"].page)
+    mkSection(settingsSF,"Appearance",1)
+
+    -- FIX (Bug #4): Capture initial window dimensions at page-build time.
+    -- Slider callback multiplies from these fixed base values, not live AbsoluteSize.
+    local baseW = root.AbsoluteSize.X
+    local baseH = root.AbsoluteSize.Y
+
+    mkSlider(settingsSF,"UI Scale",70,130,100,"%",function(v)
+        local factor = v/100
+        root.Size = UDim2.new(0, baseW*factor, 0, baseH*factor)
+    end,2)
+    mkSlider(settingsSF,"Border Opacity",0,100,90,"%",function(v)
+        rootStroke.Transparency=1-(v/100)
+    end,3)
+    mkSlider(settingsSF,"Corner Radius",6,24,14,"px",function(v)
+        rootCorner.CornerRadius=UDim.new(0,v)
+    end,4)
+    mkSection(settingsSF,"Font",5)
+    mkSlider(settingsSF,"Font Size",8,18,12,"px",function(v) lib.applyFontSize(v) end,6)
+    mkSection(settingsSF,"Accent Color",7)
+    mkDropdownV2(settingsSF,"Accent","*",Color3.fromRGB(118,68,255),
+        {"Purple","Blue","Cyan","Green","Red"},"Purple",function(v) lib.applyAccent(v) end,8)
+    mkSection(settingsSF,"Particles",9)
+    mkToggle(settingsSF,"Enable Particles",true,function(v)
+        UISettings.particles=v
+        for _,p in ipairs(particleList) do if p and p.Parent then p.Visible=v end end
+    end,10)
+    mkSlider(settingsSF,"Jumlah Partikel",5,80,26,"",function(v)
+        UISettings.particleCount=v; spawnParticles(v)
+    end,11)
+    mkSection(settingsSF,"UI Background",12)
+    mkDropdownV2(settingsSF,"Mode BG Window","o",Color3.fromRGB(80,80,180),
+        {"Solid","Transparent","Blur"},"Solid",function(v) applyUIBgMode(v) end,13)
+    mkSection(settingsSF,"Minimize Bar",14)
+    mkDropdownV2(settingsSF,"Mode BG Minimize","o",Color3.fromRGB(60,120,200),
+        {"Solid","Transparent","Blur"},"Solid",function(v) applyMiniBgMode(v) end,15)
+    mkSection(settingsSF,"Effects",16)
+    mkToggle(settingsSF,"Window Glow",true,function(v)
+        UISettings.glow=v
+        lib.smooth(rootGlow,{ImageTransparency=v and 0.85 or 1},0.3):Play()
+    end,17)
+
+    return {
+        getIsland=getIsland, getFarmMode=getFarmMode,
+        getHeight=getHeight, getSpeed=getSpeed, getTD=getTD, getLD=getLD,
+        setFarmOnOff=setFarmOnOff, getFarmOn=getFarmOn, setFarmCallback=setFarmCallback,
+        getAutoHitOn=function() return getAutoHitOn() end,
+        getFaceDown  =function() return getFaceDown() end,
+        getSpinOn    =function() return getSpinOn() end,
+        getSkillOn   =function(k) return skillOn[k] end,
+        setFarmStat  =function() end,
+        setFarmPhase =function() end,
+        setFarmNPC   =function() end,
+        getSelectedBoss=function() return selectedBoss end,
+        setBossStat=setBossStat, setBossPhase=setBossPhase,
+        setBossTarget=function() end,
+        setBossOnOff=setBossOnOff, getBossOn=getBossOn, setBossCallback=setBossCallback,
+        setDungeonStat=setDungeonStat, setDungeonNPC=setDungeonNPC, setDungeonHit=setDungeonHit,
+        setDungeonOnOff=setDungeonOnOff, getDungeonOn=getDungeonOn, setDungeonCallback=setDungeonCallback,
+    }
 end
