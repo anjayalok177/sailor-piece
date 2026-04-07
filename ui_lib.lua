@@ -1,5 +1,5 @@
 -- ╔══════════════════════════════════╗
--- ║  YiDaMuSake — UI Library  v8    ║
+-- ║  YiDaMuSake — UI Library  v8.1  ║
 -- ╚══════════════════════════════════╝
 local TweenService = game:GetService("TweenService")
 local UIS          = game:GetService("UserInputService")
@@ -133,18 +133,21 @@ end
 
 -- =====================
 -- TWO-COLUMN LAYOUT
--- FIX: satu ScrollingFrame tunggal dengan dua plain Frame kolom.
--- Dua SF berdampingan di Roblox menyebabkan input gagal karena
--- engine tidak bisa menentukan SF mana yang harus menerima klik/scroll.
+-- FIX (Bug #1): Canvas size is now managed manually by listening to
+-- AbsoluteContentSize changes on both column layouts. This ensures the
+-- ScrollingFrame always knows the true height of its tallest column.
+-- FIX (Bug #11): Vertical divider height is updated alongside canvas.
 -- =====================
 local function mkTwoColLayout(parent, dividerColor)
-    -- Satu SF sebagai satu-satunya scroll container
+    local VPAD = 18  -- top + bottom padding combined
+
     local sf=Instance.new("ScrollingFrame",parent)
     sf.Size=UDim2.new(1,0,1,0)
     sf.BackgroundTransparency=1; sf.BorderSizePixel=0
     sf.ScrollBarThickness=2; sf.ScrollBarImageColor3=T.accent
     sf.ScrollBarImageTransparency=0.4
-    sf.CanvasSize=UDim2.new(0,0,0,0); sf.AutomaticCanvasSize=Enum.AutomaticSize.Y
+    sf.CanvasSize=UDim2.new(0,0,0,0)
+    sf.AutomaticCanvasSize=Enum.AutomaticSize.None  -- managed manually
     sf.ZIndex=3; sf.ClipsDescendants=true
     sf.ScrollingEnabled=true
     regAccent("scrollbar",sf)
@@ -152,7 +155,6 @@ local function mkTwoColLayout(parent, dividerColor)
     pp.PaddingTop=UDim.new(0,4); pp.PaddingBottom=UDim.new(0,14)
     pp.PaddingLeft=UDim.new(0,3); pp.PaddingRight=UDim.new(0,3)
 
-    -- Kolom kiri (plain Frame, bukan ScrollingFrame)
     local leftF=Instance.new("Frame",sf)
     leftF.Size=UDim2.new(0.5,-3,0,0)
     leftF.Position=UDim2.new(0,0,0,0)
@@ -162,17 +164,17 @@ local function mkTwoColLayout(parent, dividerColor)
     local ll=Instance.new("UIListLayout",leftF)
     ll.Padding=UDim.new(0,5); ll.SortOrder=Enum.SortOrder.LayoutOrder
 
-    -- Garis pembatas vertikal
+    -- Vertical divider — height kept in sync with canvas
+    local div = nil
     if dividerColor then
-        local div=Instance.new("Frame",sf)
-        div.Size=UDim2.new(0,1,1,0)
+        div=Instance.new("Frame",sf)
+        div.Size=UDim2.new(0,1,0,100)  -- initial height; updated below
         div.Position=UDim2.new(0.5,-0.5,0,0)
         div.BackgroundColor3=dividerColor
         div.BackgroundTransparency=0.5
         div.BorderSizePixel=0; div.ZIndex=4
     end
 
-    -- Kolom kanan (plain Frame, bukan ScrollingFrame)
     local rightF=Instance.new("Frame",sf)
     rightF.Size=UDim2.new(0.5,-3,0,0)
     rightF.Position=UDim2.new(0.5,3,0,0)
@@ -181,6 +183,21 @@ local function mkTwoColLayout(parent, dividerColor)
     rightF.BorderSizePixel=0; rightF.ZIndex=3
     local rl=Instance.new("UIListLayout",rightF)
     rl.Padding=UDim.new(0,5); rl.SortOrder=Enum.SortOrder.LayoutOrder
+
+    -- FIX: update canvas and divider whenever either column changes height
+    local function updateCanvas()
+        local lh = ll.AbsoluteContentSize.Y + VPAD
+        local rh = rl.AbsoluteContentSize.Y + VPAD
+        local maxH = math.max(lh, rh, 40)
+        sf.CanvasSize = UDim2.new(0, 0, 0, maxH)
+        if div then
+            div.Size = UDim2.new(0, 1, 0, maxH)
+        end
+    end
+
+    ll:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+    rl:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+    updateCanvas()
 
     return leftF, rightF
 end
@@ -530,8 +547,6 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
     arrowL.TextSize=10; arrowL.ZIndex=9
     local selected=default or items[1]
     local itemFrames={}
-
-    -- setOpen didefinisikan SEBELUM item loop agar auto-close berfungsi
     local open=false
     local CLOSED_H=HEADER_H
     local OPEN_H=HEADER_H+#items*ITEM_H+2
@@ -547,7 +562,6 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
             smooth(wrapper,{BackgroundColor3=T.card},0.18):Play()
         end
     end
-
     for idx,item in ipairs(items) do
         local yOff=HEADER_H+(idx-1)*ITEM_H
         local sep=Instance.new("Frame",wrapper)
@@ -610,7 +624,7 @@ local function mkDropdownV2(parent,label,icon,iconCol,items,default,onChange,ord
                 d.check.Text=isSel and "✓" or ""
             end
             if onChange then onChange(ci) end
-            setOpen(false)  -- auto-close setelah pilih
+            setOpen(false)
         end)
     end
     header.MouseButton1Click:Connect(function()
@@ -628,8 +642,6 @@ end
 
 -- =====================
 -- SUB-TAB BAR
--- FIX: Returns subPages[name] = plain Frame (bukan {sf,frame}).
--- Caller yang menentukan apakah pakai mkScrollPage atau mkTwoColLayout.
 -- =====================
 local function mkSubTabBar(parent,tabs)
     local BAR_H=30
@@ -676,16 +688,12 @@ local function mkSubTabBar(parent,tabs)
         slbl.Size=UDim2.new(1,0,1,0); slbl.BackgroundTransparency=1; slbl.Text=name
         slbl.TextColor3=(i==1) and T.white or T.textSub
         slbl.Font=Enum.Font.GothamBold; slbl.TextSize=tabTextSize; slbl.ZIndex=11
-
-        -- subPage = plain Frame, caller menentukan layout di dalamnya
         local subOuter=Instance.new("Frame",parent)
         subOuter.Size=UDim2.new(1,0,1,-BAR_H-4)
         subOuter.Position=UDim2.new(0,0,0,BAR_H+4)
         subOuter.BackgroundTransparency=1; subOuter.Visible=(i==1); subOuter.ZIndex=3
-
-        subPages[name]=subOuter  -- plain Frame, bukan {sf,frame}
+        subPages[name]=subOuter
         subBtns[i]={lbl=slbl, subPage=subOuter}
-
         local ci=i
         sbtn.MouseButton1Click:Connect(function()
             ripple(sbtn,sbtn.AbsoluteSize.X*0.5,sbtn.AbsoluteSize.Y*0.5,T.white)
