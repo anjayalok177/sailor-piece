@@ -11,24 +11,10 @@ pcall(function() for _,e in ipairs(game.Workspace.CurrentCamera:GetChildren()) d
 -- =====================
 -- ANTI-AFK (aktif otomatis saat execute)
 -- =====================
-task.spawn(function()
-    local player=game:GetService("Players").LocalPlayer
-    while true do
-        task.wait(55)
-        pcall(function()
-            local char=player.Character
-            if char then
-                local hum=char:FindFirstChildOfClass("Humanoid")
-                if hum then hum.Jump=true end
-            end
-        end)
-        -- Second method as backup: fire virtual keypress
-        pcall(function()
-            game:GetService("VirtualInputManager"):SendKeyEvent(true,Enum.KeyCode.Space,false,game)
-            task.wait(0.1)
-            game:GetService("VirtualInputManager"):SendKeyEvent(false,Enum.KeyCode.Space,false,game)
-        end)
-    end
+local vu = game:GetService("VirtualUser")
+game:GetService("Players").LocalPlayer.Idled:connect(function()
+    vu:CaptureController()
+    vu:ClickButton2(Vector2.new())
 end)
 
 local lib        = load("ui_lib.lua")
