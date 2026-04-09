@@ -572,8 +572,8 @@ return function(refs,T)
             local target=bossPos+Vector3.new(0,3,0)
             if bossFlyBP then bossFlyBP.Position=target end
             if dist>4 then
-                TweenService:Create(rr,TweenInfo.new(math.clamp(dist/70,0.05,0.6),Enum.EasingStyle.Linear),
-                    {CFrame=CFrame.new(target)}):Play()
+                TweenService:Create(rr,TweenInfo.new(math.clamp(dist/20,0.8,3.5),Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+    {CFrame=CFrame.new(target)}):Play()
             end
             task.wait(0.15)
         end
