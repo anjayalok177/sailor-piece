@@ -537,12 +537,26 @@ return function(refs,T)
         end
         if not bossKillOn then disableBossFly(); refs.setBossOnOff(false); return end
         enableBossFly(); refs.setBossPhase("Mendekat...",T.accentGlow)
-        local r=getRoot()
-        if r then
-            r.CFrame=CFrame.new(bossCoord+Vector3.new(0,5,0))
-            if bossFlyBP then bossFlyBP.Position=bossCoord+Vector3.new(0,5,0) end
-        end
-        task.wait(0.5)
+      local function moveToBoss(targetPos)
+    local rr=getRoot(); if not rr then return end
+    local dist=(rr.Position-targetPos).Magnitude
+    if dist>500 then
+        rr.CFrame=CFrame.new(targetPos)
+        if bossFlyBP then bossFlyBP.Position=targetPos end
+        task.wait(0.3)
+    else
+        local speed=refs.getSpeed and refs.getSpeed() or 150
+        local dur=math.max(0.3,dist/speed)
+        if bossFlyBP then bossFlyBP.Position=targetPos end
+        local tw=TweenService:Create(rr,TweenInfo.new(dur,Enum.EasingStyle.Linear),
+            {CFrame=CFrame.new(targetPos)})
+        tw:Play(); tw.Completed:Wait()
+    end
+end
+
+local r=getRoot()
+if r then moveToBoss(bossCoord+Vector3.new(0,5,0)) end
+task.wait(0.3)
 
         -- Boss hit: vector.create dari posisi boss, diperbarui tiap iterasi
         local bossHitRun=true
