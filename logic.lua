@@ -583,13 +583,18 @@ task.wait(0.3)
             local bossPos=bossPart.Position
             local dist=(rr.Position-bossPos).Magnitude
             refs.setBossStat(npcName.." | "..math.floor(dist).."st",T.green)
-            local target=bossPos+Vector3.new(0,3,0)
-            if bossFlyBP then bossFlyBP.Position=target end
-            if dist>4 then
-                TweenService:Create(rr,TweenInfo.new(math.clamp(dist/20,0.8,3.5),Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
-    {CFrame=CFrame.new(target)}):Play()
-            end
-            task.wait(0.15)
+           local target=bossPos+Vector3.new(0,3,0)
+if dist>500 then
+    rr.CFrame=CFrame.new(target)
+    if bossFlyBP then bossFlyBP.Position=target end
+elseif dist>4 then
+    local speed=refs.getSpeed and refs.getSpeed() or 150
+    local dur=math.max(0.05,dist/speed)
+    if bossFlyBP then bossFlyBP.Position=target end
+    TweenService:Create(rr,TweenInfo.new(dur,Enum.EasingStyle.Linear),
+        {CFrame=CFrame.new(target)}):Play()
+end
+task.wait(0.15)
         end
         bossHitRun=false; disableBossFly()
         refs.setBossStat("Idle",T.textDim); refs.setBossPhase("--",T.textDim)
