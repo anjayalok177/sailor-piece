@@ -236,53 +236,105 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
     for i=9,16 do makeTpCard(tpRightF,TELEPORT_LOCATIONS[i],i-8) end
 
     -- BOSS
-    local bossLeftF,bossRightF=mkTwoColLayout(subPages["Boss"],T.border)
-    local bossCtrlGroup=mkGroupBox(bossLeftF,1); mkSectionLabel(bossCtrlGroup,"Control",1)
-    local bossStatLbl=Instance.new("TextLabel",bossCtrlGroup); bossStatLbl.Size=UDim2.new(1,0,0,18)
-    bossStatLbl.BackgroundTransparency=1; bossStatLbl.Text="Idle"; bossStatLbl.TextColor3=T.textDim
-    bossStatLbl.Font=Enum.Font.Gotham; bossStatLbl.TextSize=10; bossStatLbl.TextXAlignment=Enum.TextXAlignment.Center; bossStatLbl.LayoutOrder=2
-    local bossPhaseLbl=Instance.new("TextLabel",bossCtrlGroup); bossPhaseLbl.Size=UDim2.new(1,0,0,14)
-    bossPhaseLbl.BackgroundTransparency=1; bossPhaseLbl.Text="--"; bossPhaseLbl.TextColor3=T.textDim
-    bossPhaseLbl.Font=Enum.Font.GothamBold; bossPhaseLbl.TextSize=9; bossPhaseLbl.TextXAlignment=Enum.TextXAlignment.Center; bossPhaseLbl.LayoutOrder=3
-    local function setBossStat(txt,col) bossStatLbl.Text=txt or "Idle"; if col then smooth(bossStatLbl,{TextColor3=col},0.15):Play() end end
-    local function setBossPhase(txt,col) bossPhaseLbl.Text=txt or "--"; if col then smooth(bossPhaseLbl,{TextColor3=col},0.15):Play() end end
-    local bossOnOffBtn,setBossOnOff,getBossOn,setBossCallback=mkOnOffBtn(bossCtrlGroup,"Auto Kill Boss",4)
-    local bossListGroup=mkGroupBox(bossLeftF,2); mkSectionLabel(bossListGroup,"Pilih Boss (1-5)",1)
-    -- FIX Bug#10: meaningful label
-    local bossRightGroup=mkGroupBox(bossRightF,1); mkSectionLabel(bossRightGroup,"Pilih Boss (6-9)",1)
-    local selectedBoss=nil; local bossCards={}
-    -- FIX Bug#2: forward declare as local
-    local rebuildBossCards
-    rebuildBossCards=function()
-        for _,c in ipairs(bossCards) do pcall(function() c:Destroy() end) end; bossCards={}
-        for idx,bossName in ipairs(KNOWN_BOSSES) do
-            local parent=idx<=5 and bossListGroup or bossRightGroup
-            local order=idx<=5 and (idx+1) or (idx-5+1)
-            local isSel=(selectedBoss==bossName)
-            local card=Instance.new("Frame",parent); card.Size=UDim2.new(1,0,0,36)
-            card.BackgroundColor3=isSel and Color3.fromRGB(32,22,58) or Color3.fromRGB(14,13,22)
-            card.BorderSizePixel=0; card.LayoutOrder=order; card.ZIndex=5
-            Instance.new("UICorner",card).CornerRadius=UDim.new(0,8)
-            local cs=Instance.new("UIStroke",card); cs.Color=isSel and T.accentGlow or T.border
-            cs.Transparency=isSel and 0.1 or 0.5; cs.Thickness=isSel and 1.2 or 0.8
-            local lbar=Instance.new("Frame",card); lbar.Size=UDim2.new(0,2,0,18); lbar.Position=UDim2.new(0,6,0.5,0)
-            lbar.AnchorPoint=Vector2.new(0,0.5); lbar.BackgroundColor3=isSel and T.accentGlow or T.textDim; lbar.BorderSizePixel=0
-            Instance.new("UICorner",lbar).CornerRadius=UDim.new(1,0)
-            local nameL=Instance.new("TextLabel",card); nameL.Size=UDim2.new(1,-58,1,0); nameL.Position=UDim2.new(0,14,0,0)
-            nameL.BackgroundTransparency=1; nameL.Text=bossName; nameL.TextColor3=isSel and T.white or T.textSub
-            nameL.Font=isSel and Enum.Font.GothamBold or Enum.Font.Gotham; nameL.TextSize=10; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
-            local selBtn=Instance.new("TextButton",card); selBtn.Size=UDim2.new(0,44,0,22); selBtn.Position=UDim2.new(1,-48,0.5,0)
-            selBtn.AnchorPoint=Vector2.new(0,0.5); selBtn.BackgroundColor3=isSel and T.accentSoft or Color3.fromRGB(24,22,38)
-            selBtn.Text=isSel and "ON" or "Pilih"; selBtn.TextColor3=T.white; selBtn.Font=Enum.Font.GothamBold
-            selBtn.TextSize=9; selBtn.BorderSizePixel=0; selBtn.ZIndex=7; Instance.new("UICorner",selBtn).CornerRadius=UDim.new(0,6)
-            local ci=bossName
-            selBtn.MouseButton1Click:Connect(function()
-                selectedBoss=ci; ripple(selBtn,selBtn.AbsoluteSize.X*0.5,selBtn.AbsoluteSize.Y*0.5,T.accent); rebuildBossCards()
-            end)
-            table.insert(bossCards,card)
-        end
+-- BOSS
+local bossLeftF,bossRightF=mkTwoColLayout(subPages["Boss"],T.border)
+
+-- KIRI: control + status
+local bossCtrlGroup=mkGroupBox(bossLeftF,1)
+mkSectionLabel(bossCtrlGroup,"Control",1)
+
+local _,setBossStat=mkStatus(bossCtrlGroup,"Status","Idle",2)
+local _,setBossPhase=mkStatus(bossCtrlGroup,"Phase","--",3)
+
+local bossOnOffBtn,setBossOnOff,getBossOn,setBossCallback=
+    mkOnOffBtn(bossCtrlGroup,"Auto Kill Boss",4)
+
+-- KANAN: pilih boss
+local bossPickGroup=mkGroupBox(bossRightF,1)
+mkSectionLabel(bossPickGroup,"Pilih Boss",1)
+
+-- label info boss terpilih
+local bossSelCard=Instance.new("Frame",bossPickGroup)
+bossSelCard.Size=UDim2.new(1,0,0,22); bossSelCard.BackgroundTransparency=1
+bossSelCard.BorderSizePixel=0; bossSelCard.LayoutOrder=2
+local bossSelLbl=Instance.new("TextLabel",bossSelCard)
+bossSelLbl.Size=UDim2.new(1,0,1,0); bossSelLbl.BackgroundTransparency=1
+bossSelLbl.Text="Belum dipilih"; bossSelLbl.TextColor3=T.textDim
+bossSelLbl.Font=Enum.Font.GothamBold; bossSelLbl.TextSize=10
+bossSelLbl.TextXAlignment=Enum.TextXAlignment.Center
+
+local selectedBoss=nil
+local bossCards={}
+
+local function setBossStatFn(txt,col)
+    setBossStat(txt or "Idle",col)
+end
+local function setBossPhaseFn(txt,col)
+    setBossPhase(txt or "--",col)
+end
+
+-- FIX Bug#2: forward declare as local
+local rebuildBossCards
+rebuildBossCards=function()
+    for _,c in ipairs(bossCards) do pcall(function() c:Destroy() end) end
+    bossCards={}
+    local order=3
+    for idx,bossName in ipairs(KNOWN_BOSSES) do
+        local isSel=(selectedBoss==bossName)
+        local card=Instance.new("Frame",bossPickGroup)
+        card.Size=UDim2.new(1,0,0,34)
+        card.BackgroundColor3=isSel and Color3.fromRGB(28,18,52) or Color3.fromRGB(14,13,22)
+        card.BorderSizePixel=0; card.LayoutOrder=order; card.ZIndex=5
+        Instance.new("UICorner",card).CornerRadius=UDim.new(0,8)
+        local cs=Instance.new("UIStroke",card)
+        cs.Color=isSel and T.accentGlow or T.border
+        cs.Transparency=isSel and 0.05 or 0.5; cs.Thickness=isSel and 1.4 or 0.8
+
+        local lbar=Instance.new("Frame",card)
+        lbar.Size=UDim2.new(0,2,0,16); lbar.Position=UDim2.new(0,6,0.5,0)
+        lbar.AnchorPoint=Vector2.new(0,0.5)
+        lbar.BackgroundColor3=isSel and T.accentGlow or T.textDim
+        lbar.BorderSizePixel=0
+        Instance.new("UICorner",lbar).CornerRadius=UDim.new(1,0)
+
+        local nameL=Instance.new("TextLabel",card)
+        nameL.Size=UDim2.new(1,-52,1,0); nameL.Position=UDim2.new(0,14,0,0)
+        nameL.BackgroundTransparency=1; nameL.Text=bossName
+        nameL.TextColor3=isSel and T.white or T.textSub
+        nameL.Font=isSel and Enum.Font.GothamBold or Enum.Font.Gotham
+        nameL.TextSize=10; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
+
+        local selBtn=Instance.new("TextButton",card)
+        selBtn.Size=UDim2.new(0,40,0,20); selBtn.Position=UDim2.new(1,-44,0.5,0)
+        selBtn.AnchorPoint=Vector2.new(0,0.5)
+        selBtn.BackgroundColor3=isSel and T.accentSoft or Color3.fromRGB(22,20,36)
+        selBtn.Text=isSel and "ON" or "Set"
+        selBtn.TextColor3=T.white; selBtn.Font=Enum.Font.GothamBold
+        selBtn.TextSize=9; selBtn.BorderSizePixel=0; selBtn.ZIndex=7
+        Instance.new("UICorner",selBtn).CornerRadius=UDim.new(0,5)
+
+        local ci=bossName
+        selBtn.MouseButton1Click:Connect(function()
+            selectedBoss=ci
+            bossSelLbl.Text="Target: "..ci
+            smooth(bossSelLbl,{TextColor3=T.accentGlow},0.2):Play()
+            ripple(selBtn,selBtn.AbsoluteSize.X*0.5,selBtn.AbsoluteSize.Y*0.5,T.accent)
+            rebuildBossCards()
+        end)
+
+        table.insert(bossCards,card)
+        order=order+1
     end
-    rebuildBossCards()
+end
+rebuildBossCards()
+
+-- Auto refresh list boss setiap 3 detik
+task.spawn(function()
+    while bossPickGroup and bossPickGroup.Parent do
+        task.wait(3)
+        rebuildBossCards()
+    end
+end)
 
     -- DUNGEON
     local dungeonSF=mkScrollPage(subPages["Dungeon"])
