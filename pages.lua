@@ -392,8 +392,9 @@ end)
         getSkillOn=function(k) return skillOn[k] end,
         setFarmStat=function() end, setFarmPhase=function() end, setFarmNPC=function() end,
         getSelectedBoss=function() return selectedBoss end,
-        setBossStat=setBossStat, setBossPhase=setBossPhase, setBossTarget=function() end,
+        setBossStat=setBossStatFn, setBossPhase=setBossPhaseFn, setBossTarget=function() end,
         setBossOnOff=setBossOnOff, getBossOn=getBossOn, setBossCallback=setBossCallback,
+        getSelectedBoss=function() return selectedBoss end,
         setDungeonStat=setDungeonStat, setDungeonNPC=setDungeonNPC, setDungeonHit=setDungeonHit,
         setDungeonOnOff=setDungeonOnOff, getDungeonOn=getDungeonOn, setDungeonCallback=setDungeonCallback,
     }
