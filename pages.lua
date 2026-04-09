@@ -172,7 +172,7 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
     local _,getIsland=mkDropdownV2(farmGroup,"Pulau","*",Color3.fromRGB(78,46,200),FARM_ISLANDS,"Starter Island",nil,2)
     local _,getFarmMode=mkDropdownV2(farmGroup,"Mode","o",Color3.fromRGB(50,130,200),{"V1 - Semua Titik","V2 - Titik Tengah"},"V1 - Semua Titik",nil,3)
     local farmOnOffBtn,setFarmOnOff,getFarmOn,setFarmCallback=mkOnOffBtn(farmGroup,"Auto Farm + Quest",4)
-    local _,_,getAutoHitOn=mkToggle(farmGroup,"Auto Hit",false,nil,5)
+    local _,_,getAutoHitOn=mkToggle(farmGroup,"Kill Aura",false,nil,5)
     local modeGroup=mkGroupBox(leftF,2); mkSectionLabel(modeGroup,"Testing Mode",1)
     local _,_,getFaceDown=mkToggle(modeGroup,"Face Down",false,nil,2)
     local _,_,getSpinOn=mkToggle(modeGroup,"Auto Spin HRP",false,nil,3)
