@@ -39,23 +39,37 @@ end
 
 local function makeNotifier(gui,T,TweenService)
     return function(title,subtitle,col)
+        -- FIX: PlayLocalSound agar tidak perlu load wait
         pcall(function()
-            local snd=Instance.new("Sound"); snd.SoundId="rbxassetid://82845990304289"
-            snd.Volume=0.65; snd.Parent=workspace; snd:Play()
+            local snd=Instance.new("Sound")
+            snd.SoundId="rbxassetid://82845990304289"
+            snd.Volume=0.65
+            snd.RollOffMaxDistance=1000
+            snd.Parent=game:GetService("SoundService")
+            game:GetService("SoundService"):PlayLocalSound(snd)
             game:GetService("Debris"):AddItem(snd,6)
         end)
         local notif=Instance.new("Frame",gui)
-        notif.Size=UDim2.new(0,290,0,60); notif.Position=UDim2.new(0.5,-145,0,-72)
-        notif.BackgroundColor3=Color3.fromRGB(12,11,20); notif.BorderSizePixel=0; notif.ZIndex=600
+        notif.Size=UDim2.new(0,290,0,60)
+        notif.Position=UDim2.new(0.5,-145,0,-72)
+        notif.BackgroundColor3=Color3.fromRGB(12,11,20)
+        notif.BorderSizePixel=0; notif.ZIndex=600
         Instance.new("UICorner",notif).CornerRadius=UDim.new(0,12)
-        local ns=Instance.new("UIStroke",notif); ns.Color=col or T.green; ns.Thickness=1.4; ns.Transparency=0.1
-        local bar=Instance.new("Frame",notif); bar.Size=UDim2.new(0,3,1,-14); bar.Position=UDim2.new(0,8,0,7)
-        bar.BackgroundColor3=col or T.green; bar.BorderSizePixel=0; Instance.new("UICorner",bar).CornerRadius=UDim.new(1,0)
-        local tl=Instance.new("TextLabel",notif); tl.Size=UDim2.new(1,-28,0,22); tl.Position=UDim2.new(0,20,0,8)
-        tl.BackgroundTransparency=1; tl.Text=title; tl.TextColor3=T.white; tl.Font=Enum.Font.GothamBold
+        local ns=Instance.new("UIStroke",notif)
+        ns.Color=col or T.green; ns.Thickness=1.4; ns.Transparency=0.1
+        local bar=Instance.new("Frame",notif)
+        bar.Size=UDim2.new(0,3,1,-14); bar.Position=UDim2.new(0,8,0,7)
+        bar.BackgroundColor3=col or T.green; bar.BorderSizePixel=0
+        Instance.new("UICorner",bar).CornerRadius=UDim.new(1,0)
+        local tl=Instance.new("TextLabel",notif)
+        tl.Size=UDim2.new(1,-28,0,22); tl.Position=UDim2.new(0,20,0,8)
+        tl.BackgroundTransparency=1; tl.Text=title
+        tl.TextColor3=T.white; tl.Font=Enum.Font.GothamBold
         tl.TextSize=13; tl.TextXAlignment=Enum.TextXAlignment.Left; tl.ZIndex=601
-        local sl=Instance.new("TextLabel",notif); sl.Size=UDim2.new(1,-28,0,14); sl.Position=UDim2.new(0,20,0,34)
-        sl.BackgroundTransparency=1; sl.Text=subtitle or ""; sl.TextColor3=T.textSub; sl.Font=Enum.Font.Gotham
+        local sl=Instance.new("TextLabel",notif)
+        sl.Size=UDim2.new(1,-28,0,14); sl.Position=UDim2.new(0,20,0,34)
+        sl.BackgroundTransparency=1; sl.Text=subtitle or ""
+        sl.TextColor3=T.textSub; sl.Font=Enum.Font.Gotham
         sl.TextSize=10; sl.TextXAlignment=Enum.TextXAlignment.Left; sl.ZIndex=601
         TweenService:Create(notif,TweenInfo.new(0.34,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
             {Position=UDim2.new(0.5,-145,0,12)}):Play()
