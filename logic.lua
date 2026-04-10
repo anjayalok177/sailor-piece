@@ -50,6 +50,24 @@ local function fireTP(loc)
     pcall(function() ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("TeleportToPortal"):FireServer(loc) end)
 end
 
+-- =====================
+-- HEALTH DETECTION
+-- =====================
+local function getHealth(obj)
+    if not obj or not obj.Parent then return 0 end
+    local model=obj:IsA("Model") and obj or obj.Parent
+    if not model then return 0 end
+    local hum=model:FindFirstChildOfClass("Humanoid")
+        or model:FindFirstChildWhichIsA("Humanoid",true)
+    if hum then return hum.Health end
+    return -1  -- tidak ada humanoid, anggap hidup
+end
+
+local function isAlive(obj)
+    local hp=getHealth(obj)
+    return hp ~= 0  -- hp==-1 (tidak tahu) dianggap hidup, hp==0 mati
+end
+
 return function(refs,T)
     local character=player.Character or player.CharacterAdded:Wait()
 
@@ -67,11 +85,7 @@ return function(refs,T)
         fireSettings("EnableQuestRepeat",false); fireSettings("AutoQuestRepeat",false); fireSettings("DisablePVP",false)
     end
 
-    -- =====================
-    -- REMOTE: RequestHit
-    -- Path dikonfirmasi dari contoh user:
-    -- ReplicatedStorage.CombatSystem.Remotes.RequestHit
-    -- =====================
+    -- Remote: path dikonfirmasi dari contoh user
     local hitRemote=nil
     local function getHitRemote()
         if hitRemote and hitRemote.Parent then return hitRemote end
@@ -88,10 +102,7 @@ return function(refs,T)
     local abilityRemote=nil
     local function getAbilityRemote()
         if abilityRemote and abilityRemote.Parent then return abilityRemote end
-        local paths={
-            {"AbilitySystem","Remotes","RequestAbility"},
-            {"Remotes","RequestAbility"},
-        }
+        local paths={{"AbilitySystem","Remotes","RequestAbility"},{"Remotes","RequestAbility"}}
         for _,path in ipairs(paths) do
             local ok,r=pcall(function()
                 local n=ReplicatedStorage
@@ -105,24 +116,16 @@ return function(refs,T)
         return abilityRemote
     end
 
-    -- =====================
-    -- CORE HIT FUNCTION
-    -- Sesuai contoh remote event user:
-    -- local args = { vector.create(x, y, z) }
-    -- RequestHit:FireServer(unpack(args))
-    -- =====================
+    -- Core hit function: vector.create sesuai contoh remote event user
     local function fireHitAt(vec3)
         if not vec3 then return end
         local remote=getHitRemote(); if not remote then return end
         pcall(function()
-            remote:FireServer(vector.create(vec3.X, vec3.Y, vec3.Z))
+            remote:FireServer(vector.create(vec3.X,vec3.Y,vec3.Z))
         end)
     end
 
-    -- =====================
-    -- HELPER: posisi NPC terdekat dari workspace.NPCs
-    -- Dipakai standalone hit dan dungeon
-    -- =====================
+    -- Cari posisi NPC terdekat yang masih hidup
     local function getNearestNPCPosition()
         local r=getRoot(); if not r then return nil end
         local folder=workspace:FindFirstChild("NPCs"); if not folder then return nil end
@@ -130,7 +133,7 @@ return function(refs,T)
         for _,npc in ipairs(folder:GetChildren()) do
             local part=(npc:IsA("BasePart") and npc)
                 or (npc:IsA("Model") and (npc.PrimaryPart or npc:FindFirstChildWhichIsA("BasePart",true)))
-            if part then
+            if part and isAlive(npc) then
                 local d=(r.Position-part.Position).Magnitude
                 if d<bestDist then bestDist=d; best=part end
             end
@@ -138,9 +141,7 @@ return function(refs,T)
         return best and best.Position or nil
     end
 
-    -- =====================
-    -- HELPER: NPC model terdekat (untuk dungeon tween)
-    -- =====================
+    -- Cari model NPC terdekat yang masih hidup
     local function getNearestNPCModel()
         local r=getRoot(); if not r then return nil end
         local folder=workspace:FindFirstChild("NPCs"); if not folder then return nil end
@@ -148,7 +149,7 @@ return function(refs,T)
         for _,npc in ipairs(folder:GetChildren()) do
             local part=(npc:IsA("BasePart") and npc)
                 or (npc:IsA("Model") and (npc.PrimaryPart or npc:FindFirstChildWhichIsA("BasePart",true)))
-            if part then
+            if part and isAlive(npc) then
                 local d=(r.Position-part.Position).Magnitude
                 if d<bestDist then bestDist=d; best=npc end
             end
@@ -158,7 +159,7 @@ return function(refs,T)
 
     local flyBP,flyBG=nil,nil
 
-    -- Spin task
+    -- Spin task (no gap saat aktif)
     task.spawn(function()
         while true do
             if refs and refs.getSpinOn and refs.getSpinOn() then
@@ -184,9 +185,7 @@ return function(refs,T)
         while true do
             if _G.islandFarmOn and refs and refs.getFaceDown and refs.getFaceDown() then
                 local r=getRoot()
-                if r and flyBG then
-                    flyBG.CFrame=CFrame.new(r.Position)*CFrame.fromEulerAnglesXYZ(math.pi/2,0,0)
-                end
+                if r and flyBG then flyBG.CFrame=CFrame.new(r.Position)*CFrame.fromEulerAnglesXYZ(math.pi/2,0,0) end
             end
             task.wait(0.05)
         end
@@ -198,23 +197,17 @@ return function(refs,T)
         local h=character:FindFirstChildOfClass("Humanoid")
         if not r or not h then return end; h.PlatformStand=true
         if flyBP then flyBP:Destroy() end; if flyBG then flyBG:Destroy() end
-        flyBP=Instance.new("BodyPosition")
-        flyBP.MaxForce=Vector3.new(1e5,1e5,1e5); flyBP.D=500; flyBP.P=5000
+        flyBP=Instance.new("BodyPosition"); flyBP.MaxForce=Vector3.new(1e5,1e5,1e5); flyBP.D=500; flyBP.P=5000
         flyBP.Position=r.Position; flyBP.Parent=r
-        flyBG=Instance.new("BodyGyro")
-        flyBG.MaxTorque=Vector3.new(1e5,1e5,1e5); flyBG.D=400
+        flyBG=Instance.new("BodyGyro"); flyBG.MaxTorque=Vector3.new(1e5,1e5,1e5); flyBG.D=400
         flyBG.CFrame=r.CFrame; flyBG.Parent=r
     end
     local function disableFly()
-        if flyBP then flyBP:Destroy(); flyBP=nil end
-        if flyBG then flyBG:Destroy(); flyBG=nil end
+        if flyBP then flyBP:Destroy(); flyBP=nil end; if flyBG then flyBG:Destroy(); flyBG=nil end
         character=player.Character; if not character then return end
-        local h=character:FindFirstChildOfClass("Humanoid")
-        if h then h.PlatformStand=false end
+        local h=character:FindFirstChildOfClass("Humanoid"); if h then h.PlatformStand=false end
     end
-    player.CharacterAdded:Connect(function(nc)
-        character=nc; if _G.islandFarmOn then task.wait(1); enableFly() end
-    end)
+    player.CharacterAdded:Connect(function(nc) character=nc; if _G.islandFarmOn then task.wait(1); enableFly() end end)
 
     local function moveTo(targetPos,speed)
         local r=getRoot(); if not r then return end
@@ -222,19 +215,17 @@ return function(refs,T)
         if dist>80 then
             local dur=math.max(0.3,dist/(speed or 150))
             if flyBP then flyBP.Position=targetPos end
-            local tw=TweenService:Create(r,TweenInfo.new(dur,Enum.EasingStyle.Linear),
-                {CFrame=CFrame.new(targetPos)})
+            local tw=TweenService:Create(r,TweenInfo.new(dur,Enum.EasingStyle.Linear),{CFrame=CFrame.new(targetPos)})
             tw:Play(); tw.Completed:Wait()
         else
-            r.CFrame=CFrame.new(targetPos)
-            if flyBP then flyBP.Position=targetPos end
+            r.CFrame=CFrame.new(targetPos); if flyBP then flyBP.Position=targetPos end
         end
     end
 
     -- =====================
-    -- FARM HIT SPAM
-    -- Argumen: vector.create dari koordinat titik farm saat ini
-    -- currentFarmVec diupdate setiap berpindah titik
+    -- FARM KILL AURA
+    -- Fire ke NPC hidup terdekat di sekitar titik farm (radius 80st)
+    -- Fallback ke koordinat titik jika tidak ada NPC
     -- =====================
     local currentFarmVec=nil
     local farmHitRunning=false
@@ -244,22 +235,32 @@ return function(refs,T)
         farmHitRunning=true
         task.spawn(function()
             while farmHitRunning do
-                -- currentFarmVec adalah Vector3 titik farm aktif
                 if currentFarmVec then
-                    fireHitAt(currentFarmVec)
+                    local folder=workspace:FindFirstChild("NPCs")
+                    local targetVec=currentFarmVec
+                    if folder then
+                        local best,bestDist=nil,math.huge
+                        for _,npc in ipairs(folder:GetChildren()) do
+                            local part=(npc:IsA("BasePart") and npc)
+                                or (npc:IsA("Model") and (npc.PrimaryPart or npc:FindFirstChildWhichIsA("BasePart",true)))
+                            if part and isAlive(npc) then
+                                local d=(currentFarmVec-part.Position).Magnitude
+                                if d<80 and d<bestDist then bestDist=d; best=part end
+                            end
+                        end
+                        if best then targetVec=best.Position end
+                    end
+                    fireHitAt(targetVec)
                 end
                 task.wait()
             end
         end)
     end
-    local function stopFarmHitSpam()
-        farmHitRunning=false; currentFarmVec=nil
-    end
+    local function stopFarmHitSpam() farmHitRunning=false; currentFarmVec=nil end
 
     -- =====================
-    -- NEAREST NPC HIT SPAM
-    -- Argumen: vector.create dari posisi NPC terdekat (diperbarui tiap iterasi)
-    -- Dipakai oleh standalone Auto Hit dan dungeon
+    -- STANDALONE KILL AURA (toggle di bawah Auto Farm)
+    -- Pakai NPC terdekat yang hidup, sama seperti dungeon
     -- =====================
     local npcHitRunning=false
 
@@ -268,16 +269,13 @@ return function(refs,T)
         npcHitRunning=true
         task.spawn(function()
             while npcHitRunning do
-                local pos=getNearestNPCPosition()
-                -- pos adalah Vector3, fireHitAt akan convert ke vector.create
+                local pos=getNearestNPCPosition()  -- sudah filter isAlive
                 if pos then fireHitAt(pos) end
                 task.wait()
             end
         end)
     end
-    local function stopNearestHitSpam()
-        npcHitRunning=false
-    end
+    local function stopNearestHitSpam() npcHitRunning=false end
 
     local function startAbilityLoop(checkFn)
         task.spawn(function()
@@ -315,9 +313,7 @@ return function(refs,T)
     -- Auto Quest
     local lastQuestNPC=nil
     local function fireQuestAccept(name)
-        pcall(function()
-            ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("QuestAccept"):FireServer(name)
-        end)
+        pcall(function() ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("QuestAccept"):FireServer(name) end)
     end
     local function tryAutoQuest()
         local r=getRoot(); if not r then return end
@@ -327,14 +323,12 @@ return function(refs,T)
             if npc then
                 local pos
                 if npc:IsA("Model") then
-                    local pp=npc.PrimaryPart or npc:FindFirstChildWhichIsA("BasePart")
-                    if pp then pos=pp.Position end
+                    local pp=npc.PrimaryPart or npc:FindFirstChildWhichIsA("BasePart"); if pp then pos=pp.Position end
                 elseif npc:IsA("BasePart") then pos=npc.Position end
                 if pos and (r.Position-pos).Magnitude<=100 then
                     if name~=lastQuestNPC then
                         fireQuestAccept(name)
-                        fireSettings("EnableQuestRepeat",true)
-                        fireSettings("AutoQuestRepeat",true)
+                        fireSettings("EnableQuestRepeat",true); fireSettings("AutoQuestRepeat",true)
                         lastQuestNPC=name
                     end
                     return
@@ -352,92 +346,67 @@ return function(refs,T)
     local function farmSetup(island)
         lastQuestNPC=nil
         local tpLoc=ISLAND_TP[island]; enableFly()
-        if tpLoc then tpAndWait(tpLoc,3) end
-        enableGS()
+        if tpLoc then tpAndWait(tpLoc,3) end; enableGS()
     end
     local function farmTeardown()
-        disableFly(); disableGS(); lastQuestNPC=nil
-        stopFarmHitSpam()
+        disableFly(); disableGS(); lastQuestNPC=nil; stopFarmHitSpam()
     end
 
-    -- =====================
-    -- FARM V1
-    -- currentFarmVec = koordinat setiap titik farm saat berpindah
-    -- fireHitAt(currentFarmVec) → vector.create(x,y,z)
-    -- =====================
+    -- Farm V1: currentFarmVec = koordinat setiap titik, diperbarui tiap berpindah
     local function farmLoopV1()
         isRunningV1=true
-        -- Bug#5 fix: cek state sebelum setup
         if not farmV1On then
-            isRunningV1=false
-            if refs then refs.setFarmOnOff(false) end
-            return
+            isRunningV1=false; if refs then refs.setFarmOnOff(false) end; return
         end
         _G.islandFarmOn=true
         local island=refs.getIsland(); farmSetup(island)
         if refs.getAutoHitOn and refs.getAutoHitOn() then startFarmHitSpam() end
         startAbilityLoop(function() return farmV1On end)
-
         while farmV1On do
             island=refs.getIsland(); local data=ISLANDS[island]
             if not data then task.wait(1); continue end
             for i,pos in ipairs(data.coords) do
                 if not farmV1On then break end
-                local fp=Vector3.new(pos.X, pos.Y+refs.getHeight(), pos.Z)
-                -- Update vector hit ke koordinat titik ini
-                currentFarmVec=fp
+                local fp=Vector3.new(pos.X,pos.Y+refs.getHeight(),pos.Z)
+                currentFarmVec=fp  -- update vector hit ke titik ini
                 moveTo(fp,refs.getSpeed())
-                tryAutoQuest()
-                task.wait(refs.getTD())
+                tryAutoQuest(); task.wait(refs.getTD())
             end
             if not farmV1On then break end
             local ld=refs.getLD()
             if ld>0 then
                 local endT=tick()+ld
-                while tick()<endT and farmV1On do
-                    tryAutoQuest(); task.wait(0.5)
-                end
+                while tick()<endT and farmV1On do tryAutoQuest(); task.wait(0.5) end
             end
         end
-
         farmTeardown(); _G.islandFarmOn=false; isRunningV1=false
         if refs then refs.setFarmOnOff(false) end
     end
 
-    -- =====================
-    -- FARM V2
-    -- currentFarmVec = koordinat titik tengah pulau
-    -- =====================
+    -- Farm V2: currentFarmVec = koordinat titik tengah
     local function farmLoopV2()
         isRunningV2=true
         if not farmV2On then
-            isRunningV2=false
-            if refs then refs.setFarmOnOff(false) end
-            return
+            isRunningV2=false; if refs then refs.setFarmOnOff(false) end; return
         end
         _G.islandFarmOn=true
         local island=refs.getIsland(); farmSetup(island)
         if refs.getAutoHitOn and refs.getAutoHitOn() then startFarmHitSpam() end
         startAbilityLoop(function() return farmV2On end)
-
         while farmV2On do
             island=refs.getIsland(); local data=ISLANDS[island]
             if not data then task.wait(1); continue end
             local ci=data.center; local cpos=data.coords[ci]
-            local fp=Vector3.new(cpos.X, cpos.Y+refs.getHeight(), cpos.Z)
-            -- Update vector hit ke titik tengah
-            currentFarmVec=fp
+            local fp=Vector3.new(cpos.X,cpos.Y+refs.getHeight(),cpos.Z)
+            currentFarmVec=fp  -- update vector hit ke titik tengah
             moveTo(fp,refs.getSpeed())
             tryAutoQuest()
             local ld=refs.getLD()
             if ld>0 then
                 local endT=tick()+ld
-                while tick()<endT and farmV2On do
-                    tryAutoQuest(); task.wait(0.5)
-                end
+                while tick()<endT and farmV2On do tryAutoQuest(); task.wait(0.5) end
             else task.wait(0.5) end
         end
-
         farmTeardown(); _G.islandFarmOn=false; isRunningV2=false
         if refs then refs.setFarmOnOff(false) end
     end
@@ -455,21 +424,14 @@ return function(refs,T)
         end
     end)
 
-    -- =====================
-    -- STANDALONE AUTO HIT (toggle di bawah Auto Farm)
-    -- Pakai vector NPC terdekat, sama seperti dungeon
-    -- Aktif hanya saat farm TIDAK berjalan
-    -- =====================
+    -- Standalone Kill Aura: aktif hanya saat farm tidak jalan
     task.spawn(function()
         while true do
             task.wait(0.2)
             local hitOn=refs and refs.getAutoHitOn and refs.getAutoHitOn()
             if hitOn and not _G.islandFarmOn then
-                -- Farm tidak jalan, gunakan nearest NPC
                 if not npcHitRunning then startNearestHitSpam() end
             else
-                -- Farm jalan (farm yang handle via currentFarmVec)
-                -- atau toggle off → stop nearest hit
                 if npcHitRunning then stopNearestHitSpam() end
             end
         end
@@ -478,16 +440,12 @@ return function(refs,T)
     -- Boss Kill
     local bossKillOn=false; local bossFlyBP,bossFlyBG=nil,nil
     local function enableBossFly()
-        local r=getRoot()
-        local h=character and character:FindFirstChildOfClass("Humanoid")
+        local r=getRoot(); local h=character and character:FindFirstChildOfClass("Humanoid")
         if not r or not h then return end; h.PlatformStand=true
-        if bossFlyBP then bossFlyBP:Destroy() end
-        if bossFlyBG then bossFlyBG:Destroy() end
-        bossFlyBP=Instance.new("BodyPosition")
-        bossFlyBP.MaxForce=Vector3.new(1e5,1e5,1e5); bossFlyBP.D=600; bossFlyBP.P=6000
+        if bossFlyBP then bossFlyBP:Destroy() end; if bossFlyBG then bossFlyBG:Destroy() end
+        bossFlyBP=Instance.new("BodyPosition"); bossFlyBP.MaxForce=Vector3.new(1e5,1e5,1e5); bossFlyBP.D=600; bossFlyBP.P=6000
         bossFlyBP.Position=r.Position; bossFlyBP.Parent=r
-        bossFlyBG=Instance.new("BodyGyro")
-        bossFlyBG.MaxTorque=Vector3.new(1e5,1e5,1e5); bossFlyBG.D=500
+        bossFlyBG=Instance.new("BodyGyro"); bossFlyBG.MaxTorque=Vector3.new(1e5,1e5,1e5); bossFlyBG.D=500
         bossFlyBG.CFrame=r.CFrame; bossFlyBG.Parent=r
     end
     local function disableBossFly()
@@ -497,21 +455,17 @@ return function(refs,T)
         if h and not _G.islandFarmOn then h.PlatformStand=false end
     end
     local function getBossPart(npcName)
-        -- Cari di workspace.NPCs dulu
         local npcs=workspace:FindFirstChild("NPCs")
         if npcs then
             local folder=npcs:FindFirstChild(npcName)
             if folder then
-                if folder:IsA("Model") then
-                    return folder.PrimaryPart or folder:FindFirstChildWhichIsA("BasePart",true)
+                if folder:IsA("Model") then return folder.PrimaryPart or folder:FindFirstChildWhichIsA("BasePart",true)
                 elseif folder:IsA("BasePart") then return folder end
             end
         end
-        -- Fallback: recursive workspace search
         local found=workspace:FindFirstChild(npcName,true)
         if found then
-            if found:IsA("Model") then
-                return found.PrimaryPart or found:FindFirstChildWhichIsA("BasePart",true)
+            if found:IsA("Model") then return found.PrimaryPart or found:FindFirstChildWhichIsA("BasePart",true)
             elseif found:IsA("BasePart") then return found end
         end
         return nil
@@ -519,13 +473,9 @@ return function(refs,T)
 
     local function bossKillLoop()
         local bossName=refs.getSelectedBoss()
-        if not bossName then
-            refs.setBossStat("Pilih boss dulu!",T.red); refs.setBossOnOff(false); bossKillOn=false; return
-        end
+        if not bossName then refs.setBossStat("Pilih boss dulu!",T.red); refs.setBossOnOff(false); bossKillOn=false; return end
         local data=getBossData(bossName)
-        if not data then
-            refs.setBossStat("Data tidak ditemukan!",T.red); refs.setBossOnOff(false); bossKillOn=false; return
-        end
+        if not data then refs.setBossStat("Data tidak ditemukan!",T.red); refs.setBossOnOff(false); bossKillOn=false; return end
         local npcName=data.npc; local bossCoord=data.coord; local tpLoc=data.tpLoc
         if tpLoc then
             refs.setBossPhase("Teleporting...",T.amber); refs.setBossStat("TP ke "..tpLoc,T.amber)
@@ -537,34 +487,38 @@ return function(refs,T)
         end
         if not bossKillOn then disableBossFly(); refs.setBossOnOff(false); return end
         enableBossFly(); refs.setBossPhase("Mendekat...",T.accentGlow)
-      local function moveToBoss(targetPos)
-    local rr=getRoot(); if not rr then return end
-    local dist=(rr.Position-targetPos).Magnitude
-    if dist>500 then
-        rr.CFrame=CFrame.new(targetPos)
-        if bossFlyBP then bossFlyBP.Position=targetPos end
+
+        -- Tween/teleport ke koordinat boss, sama seperti farm
+        local function moveToBoss(targetPos)
+            local rr=getRoot(); if not rr then return end
+            local dist=(rr.Position-targetPos).Magnitude
+            if dist>500 then
+                rr.CFrame=CFrame.new(targetPos)
+                if bossFlyBP then bossFlyBP.Position=targetPos end
+                task.wait(0.3)
+            else
+                local speed=refs.getSpeed and refs.getSpeed() or 150
+                local dur=math.max(0.3,dist/speed)
+                if bossFlyBP then bossFlyBP.Position=targetPos end
+                local tw=TweenService:Create(rr,TweenInfo.new(dur,Enum.EasingStyle.Linear),{CFrame=CFrame.new(targetPos)})
+                tw:Play(); tw.Completed:Wait()
+            end
+        end
+
+        local r=getRoot()
+        if r then moveToBoss(bossCoord+Vector3.new(0,5,0)) end
         task.wait(0.3)
-    else
-        local speed=refs.getSpeed and refs.getSpeed() or 150
-        local dur=math.max(0.3,dist/speed)
-        if bossFlyBP then bossFlyBP.Position=targetPos end
-        local tw=TweenService:Create(rr,TweenInfo.new(dur,Enum.EasingStyle.Linear),
-            {CFrame=CFrame.new(targetPos)})
-        tw:Play(); tw.Completed:Wait()
-    end
-end
 
-local r=getRoot()
-if r then moveToBoss(bossCoord+Vector3.new(0,5,0)) end
-task.wait(0.3)
-
-        -- Boss hit: vector.create dari posisi boss, diperbarui tiap iterasi
+        -- Boss hit: vector dari posisi boss, cek health tiap iterasi
         local bossHitRun=true
         task.spawn(function()
             while bossHitRun and bossKillOn do
                 local bossPart=getBossPart(npcName)
                 if bossPart then
-                    -- Gunakan posisi boss terkini
+                    -- Jika boss health 0 → stop hit
+                    if not isAlive(bossPart.Parent or bossPart) then
+                        bossHitRun=false; break
+                    end
                     fireHitAt(bossPart.Position)
                 end
                 task.wait()
@@ -574,28 +528,39 @@ task.wait(0.3)
         refs.setBossPhase("Menyerang",T.green)
         while bossKillOn do
             local bossPart=getBossPart(npcName)
+
+            -- Boss tidak ada = despawn/mati → OFF
             if not bossPart then
                 refs.setBossStat(npcName.." selesai!",T.green)
-                refs.setBossPhase("Boss hilang",T.green)
-                break
+                refs.setBossPhase("Boss mati",T.green); break
             end
+
+            -- Health 0 → OFF
+            if not isAlive(bossPart.Parent or bossPart) then
+                refs.setBossStat(npcName.." health 0!",T.green)
+                refs.setBossPhase("Boss mati",T.green); break
+            end
+
             local rr=getRoot(); if not rr then task.wait(0.2); continue end
             local bossPos=bossPart.Position
             local dist=(rr.Position-bossPos).Magnitude
-            refs.setBossStat(npcName.." | "..math.floor(dist).."st",T.green)
-           local target=bossPos+Vector3.new(0,3,0)
-if dist>500 then
-    rr.CFrame=CFrame.new(target)
-    if bossFlyBP then bossFlyBP.Position=target end
-elseif dist>4 then
-    local speed=refs.getSpeed and refs.getSpeed() or 150
-    local dur=math.max(0.05,dist/speed)
-    if bossFlyBP then bossFlyBP.Position=target end
-    TweenService:Create(rr,TweenInfo.new(dur,Enum.EasingStyle.Linear),
-        {CFrame=CFrame.new(target)}):Play()
-end
-task.wait(0.15)
+            local hp=getHealth(bossPart.Parent or bossPart)
+            local hpStr=hp>=0 and (" HP:"..math.floor(hp)) or ""
+            refs.setBossStat(npcName.." "..math.floor(dist).."st"..hpStr,T.green)
+
+            local target=bossPos+Vector3.new(0,3,0)
+            if dist>500 then
+                rr.CFrame=CFrame.new(target)
+                if bossFlyBP then bossFlyBP.Position=target end
+            elseif dist>4 then
+                local speed=refs.getSpeed and refs.getSpeed() or 150
+                local dur=math.max(0.05,dist/speed)
+                if bossFlyBP then bossFlyBP.Position=target end
+                TweenService:Create(rr,TweenInfo.new(dur,Enum.EasingStyle.Linear),{CFrame=CFrame.new(target)}):Play()
+            end
+            task.wait(0.15)
         end
+
         bossHitRun=false; disableBossFly()
         refs.setBossStat("Idle",T.textDim); refs.setBossPhase("--",T.textDim)
         refs.setBossOnOff(false); bossKillOn=false
@@ -603,23 +568,21 @@ task.wait(0.15)
 
     -- =====================
     -- DUNGEON
-    -- Hit: vector.create dari posisi NPC terdekat (diperbarui tiap task.wait)
-    -- Tween: mendekat ke NPC terdekat tiap siklus
+    -- Hit: vector NPC terdekat yang hidup (auto switch jika NPC mati)
+    -- Tween: mendekat ke NPC terdekat yang hidup
     -- =====================
     local dungeonOn=false; local dungeonHitRun=false; local activeDungeonTween=nil
 
     local function dungeonLoop()
         dungeonHitRun=true
 
-        -- Hit loop: terus-menerus fire ke NPC terdekat
+        -- Hit loop: fire ke NPC hidup terdekat, auto switch saat mati
         task.spawn(function()
             local count=0; local lastT=tick()
             while dungeonHitRun do
-                local pos=getNearestNPCPosition()
+                local pos=getNearestNPCPosition()  -- sudah filter isAlive
                 if pos then
-                    -- vector.create dari posisi NPC terdekat
-                    fireHitAt(pos)
-                    count=count+1
+                    fireHitAt(pos); count=count+1
                 end
                 if tick()-lastT>=0.5 then
                     refs.setDungeonHit(tostring(count*2).."/s",T.green)
@@ -632,11 +595,16 @@ task.wait(0.15)
 
         startAbilityLoop(function() return dungeonOn end)
 
-        -- Tween loop: tween ke NPC terdekat tiap siklus
+        -- Tween loop: ke NPC terdekat yang hidup, re-evaluate saat mati
         task.spawn(function()
             while dungeonOn do
-                local npc=getNearestNPCModel()
-                if not npc or not npc.Parent then task.wait(0.3); continue end
+                local npc=getNearestNPCModel()  -- sudah filter isAlive
+                if not npc or not npc.Parent then
+                    refs.setDungeonStat("Cari NPC...",T.amber); task.wait(0.5); continue
+                end
+                if not isAlive(npc) then
+                    refs.setDungeonStat("NPC mati, ganti target",T.amber); task.wait(0.2); continue
+                end
                 local part=(npc:IsA("BasePart") and npc)
                     or (npc:IsA("Model") and (npc.PrimaryPart or npc:FindFirstChildWhichIsA("BasePart",true)))
                 if not part then task.wait(0.3); continue end
@@ -650,13 +618,17 @@ task.wait(0.15)
                     TweenInfo.new(math.max(0.15,dist/100),Enum.EasingStyle.Linear),
                     {CFrame=CFrame.new(target)})
                 activeDungeonTween:Play()
+                -- Tunggu sampai NPC mati atau 1 detik
                 local elapsed=0
-                while elapsed<1 and dungeonOn and npc and npc.Parent do
+                while elapsed<1 and dungeonOn and npc and npc.Parent and isAlive(npc) do
                     task.wait(0.1); elapsed=elapsed+0.1
                 end
                 pcall(function()
                     if activeDungeonTween then activeDungeonTween:Cancel(); activeDungeonTween=nil end
                 end)
+                if not isAlive(npc) then
+                    refs.setDungeonNPC("Mati, ganti...",T.amber)
+                end
                 task.wait(0.05)
             end
             refs.setDungeonStat("Idle",T.textDim)
@@ -670,18 +642,13 @@ task.wait(0.15)
         if v then
             if mode=="V2 - Titik Tengah" then farmV2On=true; farmV1On=false
             else farmV1On=true; farmV2On=false end
-        else
-            farmV1On=false; farmV2On=false; stopFarmHitSpam()
-        end
+        else farmV1On=false; farmV2On=false; stopFarmHitSpam() end
     end)
 
     refs.setBossCallback(function(v)
         bossKillOn=v
         if v then task.spawn(bossKillLoop)
-        else
-            bossKillOn=false; disableBossFly()
-            refs.setBossStat("Idle",T.textDim); refs.setBossPhase("--",T.textDim)
-        end
+        else bossKillOn=false; disableBossFly(); refs.setBossStat("Idle",T.textDim); refs.setBossPhase("--",T.textDim) end
     end)
 
     refs.setDungeonCallback(function(v)
@@ -689,12 +656,8 @@ task.wait(0.15)
         if v then task.spawn(dungeonLoop)
         else
             dungeonOn=false; dungeonHitRun=false
-            if activeDungeonTween then
-                pcall(function() activeDungeonTween:Cancel(); activeDungeonTween=nil end)
-            end
-            refs.setDungeonStat("Idle",T.textDim)
-            refs.setDungeonNPC("--",T.textDim)
-            refs.setDungeonHit("0/s",T.textDim)
+            if activeDungeonTween then pcall(function() activeDungeonTween:Cancel(); activeDungeonTween=nil end) end
+            refs.setDungeonStat("Idle",T.textDim); refs.setDungeonNPC("--",T.textDim); refs.setDungeonHit("0/s",T.textDim)
         end
     end)
 end
