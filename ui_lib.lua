@@ -102,30 +102,24 @@ local function mkTwoColLayout(parent,dividerColor)
     local pp=Instance.new("UIPadding",sf)
     pp.PaddingTop=UDim.new(0,4); pp.PaddingBottom=UDim.new(0,14)
     pp.PaddingLeft=UDim.new(0,3); pp.PaddingRight=UDim.new(0,3)
-
     local leftF=Instance.new("Frame",sf)
     leftF.Size=UDim2.new(0.5,-3,0,0); leftF.Position=UDim2.new(0,0,0,0)
     leftF.BackgroundTransparency=1; leftF.AutomaticSize=Enum.AutomaticSize.Y
     leftF.BorderSizePixel=0; leftF.ZIndex=3
     local ll=Instance.new("UIListLayout",leftF)
     ll.Padding=UDim.new(0,5); ll.SortOrder=Enum.SortOrder.LayoutOrder
-
     local div=nil
     if dividerColor then
-        div=Instance.new("Frame",sf)
-        div.Size=UDim2.new(0,1,0,100)
-        div.Position=UDim2.new(0.5,-0.5,0,0)
-        div.BackgroundColor3=dividerColor; div.BackgroundTransparency=0.5
-        div.BorderSizePixel=0; div.ZIndex=4
+        div=Instance.new("Frame",sf); div.Size=UDim2.new(0,1,0,100)
+        div.Position=UDim2.new(0.5,-0.5,0,0); div.BackgroundColor3=dividerColor
+        div.BackgroundTransparency=0.5; div.BorderSizePixel=0; div.ZIndex=4
     end
-
     local rightF=Instance.new("Frame",sf)
     rightF.Size=UDim2.new(0.5,-3,0,0); rightF.Position=UDim2.new(0.5,3,0,0)
     rightF.BackgroundTransparency=1; rightF.AutomaticSize=Enum.AutomaticSize.Y
     rightF.BorderSizePixel=0; rightF.ZIndex=3
     local rl=Instance.new("UIListLayout",rightF)
     rl.Padding=UDim.new(0,5); rl.SortOrder=Enum.SortOrder.LayoutOrder
-
     local function updateCanvas()
         local lh=ll.AbsoluteContentSize.Y+VPAD
         local rh=rl.AbsoluteContentSize.Y+VPAD
