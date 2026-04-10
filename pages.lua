@@ -1,7 +1,3 @@
--- ╔══════════════════════════════════╗
--- ║  YiDaMuSake — Pages Builder      ║
--- ╚══════════════════════════════════╝
-
 local TELEPORT_LOCATIONS = {
     "Starter","Jungle","Desert","Snow",
     "Sailor","Shibuya","HollowIsland","Boss",
@@ -18,7 +14,6 @@ local KNOWN_BOSSES = {
     "GojoBoss","KnightBoss","YamatoBoss","StrongestShinobiBoss",
 }
 
--- FIX Bug#9: accept MM:SS and HH:MM:SS
 local function findTimerTextLabel(container)
     for _,desc in ipairs(container:GetDescendants()) do
         if desc:IsA("TextLabel") then
@@ -37,9 +32,9 @@ local function parseTimerSecs(text)
     return -1
 end
 
+-- FIX: PlayLocalSound agar sound langsung jalan tanpa load wait
 local function makeNotifier(gui,T,TweenService)
     return function(title,subtitle,col)
-        -- FIX: PlayLocalSound agar tidak perlu load wait
         pcall(function()
             local snd=Instance.new("Sound")
             snd.SoundId="rbxassetid://82845990304289"
@@ -146,7 +141,9 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
         end
     end
     buildTimerCards()
-    irBtn.MouseButton1Click:Connect(function() ripple(irBtn,irBtn.AbsoluteSize.X*0.5,irBtn.AbsoluteSize.Y*0.5,T.accent); buildTimerCards() end)
+    irBtn.MouseButton1Click:Connect(function()
+        ripple(irBtn,irBtn.AbsoluteSize.X*0.5,irBtn.AbsoluteSize.Y*0.5,T.accent); buildTimerCards()
+    end)
     task.spawn(function()
         while infoSF and infoSF.Parent do
             for _,e in ipairs(timerEntries) do pcall(function()
@@ -157,15 +154,21 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
                 end
                 local txt=e.timerLbl.Text or ""; e.dispTimer.Text=(txt~="" and txt or "?")
                 local secs=parseTimerSecs(txt)
-                if secs==0 and e.prevSecs>0 then showNotif(e.bossName.." spawned!","Boss telah muncul!",T.green) end
+                if secs==0 and e.prevSecs>0 then
+                    showNotif(e.bossName.." spawned!","Boss telah muncul!",T.green)
+                end
                 e.prevSecs=secs
-                if secs<0 then e.dispTimer.TextColor3=T.textDim; e.dispStatus.Text="Format: "..txt
+                if secs<0 then
+                    e.dispTimer.TextColor3=T.textDim; e.dispStatus.Text="Format: "..txt
                     smooth(e.cardStroke,{Color=T.border},0.3):Play(); smooth(e.accentBar,{BackgroundColor3=T.textDim},0.3):Play()
-                elseif secs==0 then e.dispTimer.TextColor3=T.green; e.dispStatus.Text="Spawn sekarang!"
+                elseif secs==0 then
+                    e.dispTimer.TextColor3=T.green; e.dispStatus.Text="Spawn sekarang!"
                     smooth(e.cardStroke,{Color=T.green},0.3):Play(); smooth(e.accentBar,{BackgroundColor3=T.green},0.3):Play()
-                elseif secs<60 then e.dispTimer.TextColor3=T.amber; e.dispStatus.Text="Segera spawn!"
+                elseif secs<60 then
+                    e.dispTimer.TextColor3=T.amber; e.dispStatus.Text="Segera spawn!"
                     smooth(e.cardStroke,{Color=T.amber},0.3):Play(); smooth(e.accentBar,{BackgroundColor3=T.amber},0.3):Play()
-                else e.dispTimer.TextColor3=T.accentGlow; e.dispStatus.Text="Menunggu..."
+                else
+                    e.dispTimer.TextColor3=T.accentGlow; e.dispStatus.Text="Menunggu..."
                     smooth(e.cardStroke,{Color=T.border},0.3):Play(); smooth(e.accentBar,{BackgroundColor3=T.accentDim},0.3):Play()
                 end
             end) end
@@ -250,105 +253,87 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
     for i=9,16 do makeTpCard(tpRightF,TELEPORT_LOCATIONS[i],i-8) end
 
     -- BOSS
--- BOSS
-local bossLeftF,bossRightF=mkTwoColLayout(subPages["Boss"],T.border)
+    local bossLeftF,bossRightF=mkTwoColLayout(subPages["Boss"],T.border)
 
--- KIRI: control + status
-local bossCtrlGroup=mkGroupBox(bossLeftF,1)
-mkSectionLabel(bossCtrlGroup,"Control",1)
+    -- Kiri: Control + Status
+    local bossCtrlGroup=mkGroupBox(bossLeftF,1)
+    mkSectionLabel(bossCtrlGroup,"Control",1)
+    local _,setBossStatFn=mkStatus(bossCtrlGroup,"Status","Idle",2)
+    local _,setBossPhaseFn=mkStatus(bossCtrlGroup,"Phase","--",3)
+    local bossOnOffBtn,setBossOnOff,getBossOn,setBossCallback=mkOnOffBtn(bossCtrlGroup,"Auto Kill Boss",4)
 
-local _,setBossStat=mkStatus(bossCtrlGroup,"Status","Idle",2)
-local _,setBossPhase=mkStatus(bossCtrlGroup,"Phase","--",3)
+    -- Kanan: Pilih Boss
+    local bossPickGroup=mkGroupBox(bossRightF,1)
+    mkSectionLabel(bossPickGroup,"Pilih Boss",1)
 
-local bossOnOffBtn,setBossOnOff,getBossOn,setBossCallback=
-    mkOnOffBtn(bossCtrlGroup,"Auto Kill Boss",4)
+    local bossSelCard=Instance.new("Frame",bossPickGroup)
+    bossSelCard.Size=UDim2.new(1,0,0,22); bossSelCard.BackgroundTransparency=1
+    bossSelCard.BorderSizePixel=0; bossSelCard.LayoutOrder=2
+    local bossSelLbl=Instance.new("TextLabel",bossSelCard)
+    bossSelLbl.Size=UDim2.new(1,0,1,0); bossSelLbl.BackgroundTransparency=1
+    bossSelLbl.Text="Belum dipilih"; bossSelLbl.TextColor3=T.textDim
+    bossSelLbl.Font=Enum.Font.GothamBold; bossSelLbl.TextSize=10
+    bossSelLbl.TextXAlignment=Enum.TextXAlignment.Center
 
--- KANAN: pilih boss
-local bossPickGroup=mkGroupBox(bossRightF,1)
-mkSectionLabel(bossPickGroup,"Pilih Boss",1)
+    local selectedBoss=nil; local bossCards={}
 
--- label info boss terpilih
-local bossSelCard=Instance.new("Frame",bossPickGroup)
-bossSelCard.Size=UDim2.new(1,0,0,22); bossSelCard.BackgroundTransparency=1
-bossSelCard.BorderSizePixel=0; bossSelCard.LayoutOrder=2
-local bossSelLbl=Instance.new("TextLabel",bossSelCard)
-bossSelLbl.Size=UDim2.new(1,0,1,0); bossSelLbl.BackgroundTransparency=1
-bossSelLbl.Text="Belum dipilih"; bossSelLbl.TextColor3=T.textDim
-bossSelLbl.Font=Enum.Font.GothamBold; bossSelLbl.TextSize=10
-bossSelLbl.TextXAlignment=Enum.TextXAlignment.Center
-
-local selectedBoss=nil
-local bossCards={}
-
-local function setBossStatFn(txt,col)
-    setBossStat(txt or "Idle",col)
-end
-local function setBossPhaseFn(txt,col)
-    setBossPhase(txt or "--",col)
-end
-
--- FIX Bug#2: forward declare as local
-local rebuildBossCards
-rebuildBossCards=function()
-    for _,c in ipairs(bossCards) do pcall(function() c:Destroy() end) end
-    bossCards={}
-    local order=3
-    for idx,bossName in ipairs(KNOWN_BOSSES) do
-        local isSel=(selectedBoss==bossName)
-        local card=Instance.new("Frame",bossPickGroup)
-        card.Size=UDim2.new(1,0,0,34)
-        card.BackgroundColor3=isSel and Color3.fromRGB(28,18,52) or Color3.fromRGB(14,13,22)
-        card.BorderSizePixel=0; card.LayoutOrder=order; card.ZIndex=5
-        Instance.new("UICorner",card).CornerRadius=UDim.new(0,8)
-        local cs=Instance.new("UIStroke",card)
-        cs.Color=isSel and T.accentGlow or T.border
-        cs.Transparency=isSel and 0.05 or 0.5; cs.Thickness=isSel and 1.4 or 0.8
-
-        local lbar=Instance.new("Frame",card)
-        lbar.Size=UDim2.new(0,2,0,16); lbar.Position=UDim2.new(0,6,0.5,0)
-        lbar.AnchorPoint=Vector2.new(0,0.5)
-        lbar.BackgroundColor3=isSel and T.accentGlow or T.textDim
-        lbar.BorderSizePixel=0
-        Instance.new("UICorner",lbar).CornerRadius=UDim.new(1,0)
-
-        local nameL=Instance.new("TextLabel",card)
-        nameL.Size=UDim2.new(1,-52,1,0); nameL.Position=UDim2.new(0,14,0,0)
-        nameL.BackgroundTransparency=1; nameL.Text=bossName
-        nameL.TextColor3=isSel and T.white or T.textSub
-        nameL.Font=isSel and Enum.Font.GothamBold or Enum.Font.Gotham
-        nameL.TextSize=10; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
-
-        local selBtn=Instance.new("TextButton",card)
-        selBtn.Size=UDim2.new(0,40,0,20); selBtn.Position=UDim2.new(1,-44,0.5,0)
-        selBtn.AnchorPoint=Vector2.new(0,0.5)
-        selBtn.BackgroundColor3=isSel and T.accentSoft or Color3.fromRGB(22,20,36)
-        selBtn.Text=isSel and "ON" or "Set"
-        selBtn.TextColor3=T.white; selBtn.Font=Enum.Font.GothamBold
-        selBtn.TextSize=9; selBtn.BorderSizePixel=0; selBtn.ZIndex=7
-        Instance.new("UICorner",selBtn).CornerRadius=UDim.new(0,5)
-
-        local ci=bossName
-        selBtn.MouseButton1Click:Connect(function()
-            selectedBoss=ci
-            bossSelLbl.Text="Target: "..ci
-            smooth(bossSelLbl,{TextColor3=T.accentGlow},0.2):Play()
-            ripple(selBtn,selBtn.AbsoluteSize.X*0.5,selBtn.AbsoluteSize.Y*0.5,T.accent)
-            rebuildBossCards()
-        end)
-
-        table.insert(bossCards,card)
-        order=order+1
+    local rebuildBossCards
+    rebuildBossCards=function()
+        for _,c in ipairs(bossCards) do pcall(function() c:Destroy() end) end
+        bossCards={}
+        local order=3
+        for idx,bossName in ipairs(KNOWN_BOSSES) do
+            local isSel=(selectedBoss==bossName)
+            local card=Instance.new("Frame",bossPickGroup)
+            card.Size=UDim2.new(1,0,0,34)
+            card.BackgroundColor3=isSel and Color3.fromRGB(28,18,52) or Color3.fromRGB(14,13,22)
+            card.BorderSizePixel=0; card.LayoutOrder=order; card.ZIndex=5
+            Instance.new("UICorner",card).CornerRadius=UDim.new(0,8)
+            local cs=Instance.new("UIStroke",card)
+            cs.Color=isSel and T.accentGlow or T.border
+            cs.Transparency=isSel and 0.05 or 0.5; cs.Thickness=isSel and 1.4 or 0.8
+            local lbar=Instance.new("Frame",card)
+            lbar.Size=UDim2.new(0,2,0,16); lbar.Position=UDim2.new(0,6,0.5,0)
+            lbar.AnchorPoint=Vector2.new(0,0.5)
+            lbar.BackgroundColor3=isSel and T.accentGlow or T.textDim; lbar.BorderSizePixel=0
+            Instance.new("UICorner",lbar).CornerRadius=UDim.new(1,0)
+            local nameL=Instance.new("TextLabel",card)
+            nameL.Size=UDim2.new(1,-52,1,0); nameL.Position=UDim2.new(0,14,0,0)
+            nameL.BackgroundTransparency=1; nameL.Text=bossName
+            nameL.TextColor3=isSel and T.white or T.textSub
+            nameL.Font=isSel and Enum.Font.GothamBold or Enum.Font.Gotham
+            nameL.TextSize=10; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
+            local selBtn=Instance.new("TextButton",card)
+            selBtn.Size=UDim2.new(0,40,0,20); selBtn.Position=UDim2.new(1,-44,0.5,0)
+            selBtn.AnchorPoint=Vector2.new(0,0.5)
+            selBtn.BackgroundColor3=isSel and T.accentSoft or Color3.fromRGB(22,20,36)
+            selBtn.Text=isSel and "ON" or "Set"
+            selBtn.TextColor3=T.white; selBtn.Font=Enum.Font.GothamBold
+            selBtn.TextSize=9; selBtn.BorderSizePixel=0; selBtn.ZIndex=7
+            Instance.new("UICorner",selBtn).CornerRadius=UDim.new(0,5)
+            local ci=bossName
+            selBtn.MouseButton1Click:Connect(function()
+                selectedBoss=ci
+                bossSelLbl.Text="Target: "..ci
+                smooth(bossSelLbl,{TextColor3=T.accentGlow},0.2):Play()
+                ripple(selBtn,selBtn.AbsoluteSize.X*0.5,selBtn.AbsoluteSize.Y*0.5,T.accent)
+                rebuildBossCards()
+            end)
+            table.insert(bossCards,card)
+            order=order+1
+        end
     end
-end
-rebuildBossCards()
+    rebuildBossCards()
 
--- Auto refresh list boss setiap 3 detik
-task.spawn(function()
-    while bossPickGroup and bossPickGroup.Parent do
-        task.wait(3)
-        rebuildBossCards()
-    end
-end)
+    -- Auto refresh list boss setiap 3 detik
+    task.spawn(function()
+        while bossPickGroup and bossPickGroup.Parent do
+            task.wait(3)
+            if bossPickGroup and bossPickGroup.Parent then
+                rebuildBossCards()
+            end
+        end
+    end)
 
     -- DUNGEON
     local dungeonSF=mkScrollPage(subPages["Dungeon"])
@@ -375,7 +360,6 @@ end)
     -- SETTINGS
     local settingsSF=mkScrollPage(sideData["Settings"].page)
     mkSection(settingsSF,"Appearance",1)
-    -- FIX Bug#4: capture base dimensions at build time, not live AbsoluteSize
     local baseW=root.AbsoluteSize.X; local baseH=root.AbsoluteSize.Y
     mkSlider(settingsSF,"UI Scale",70,130,100,"%",function(v)
         root.Size=UDim2.new(0,baseW*(v/100),0,baseH*(v/100))
@@ -408,7 +392,6 @@ end)
         getSelectedBoss=function() return selectedBoss end,
         setBossStat=setBossStatFn, setBossPhase=setBossPhaseFn, setBossTarget=function() end,
         setBossOnOff=setBossOnOff, getBossOn=getBossOn, setBossCallback=setBossCallback,
-        getSelectedBoss=function() return selectedBoss end,
         setDungeonStat=setDungeonStat, setDungeonNPC=setDungeonNPC, setDungeonHit=setDungeonHit,
         setDungeonOnOff=setDungeonOnOff, getDungeonOn=getDungeonOn, setDungeonCallback=setDungeonCallback,
     }
