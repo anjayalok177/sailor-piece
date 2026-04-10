@@ -1,20 +1,27 @@
--- ╔═══════════════════════════════════════════════╗
--- ║         Yi Da Mu Sake — Main Loader             ║
--- ╚═════════════════════════════════════════════════╝
-
 local RAW="https://raw.githubusercontent.com/anjayalok177/sailor-piece/refs/heads/main/"
 local function load(file) return loadstring(game:HttpGet(RAW..file))() end
 
 pcall(function() local old=game:GetService("CoreGui"):FindFirstChild("YiDaMuSake"); if old then old:Destroy() end end)
 pcall(function() for _,e in ipairs(game.Workspace.CurrentCamera:GetChildren()) do if e:IsA("BlurEffect") then e:Destroy() end end end)
 
--- =====================
--- ANTI-AFK (aktif otomatis saat execute)
--- =====================
-local vu = game:GetService("VirtualUser")
-game:GetService("Players").LocalPlayer.Idled:connect(function()
-    vu:CaptureController()
-    vu:ClickButton2(Vector2.new())
+-- Anti-AFK: aktif otomatis saat execute
+task.spawn(function()
+    local player=game:GetService("Players").LocalPlayer
+    while true do
+        task.wait(55)
+        pcall(function()
+            local char=player.Character
+            if char then
+                local hum=char:FindFirstChildOfClass("Humanoid")
+                if hum then hum.Jump=true end
+            end
+        end)
+        pcall(function()
+            game:GetService("VirtualInputManager"):SendKeyEvent(true,Enum.KeyCode.Space,false,game)
+            task.wait(0.1)
+            game:GetService("VirtualInputManager"):SendKeyEvent(false,Enum.KeyCode.Space,false,game)
+        end)
+    end
 end)
 
 local lib        = load("ui_lib.lua")
@@ -57,12 +64,15 @@ inner.BackgroundTransparency=1; inner.ClipsDescendants=true; inner.ZIndex=1
 local bgF=Instance.new("Frame",inner); bgF.Size=UDim2.new(1,0,1,0); bgF.BackgroundColor3=T.bg
 bgF.BorderSizePixel=0; bgF.ZIndex=1; Instance.new("UICorner",bgF).CornerRadius=UDim.new(0,14)
 local bgGrad=Instance.new("UIGradient",bgF)
-bgGrad.Color=ColorSequence.new{ColorSequenceKeypoint.new(0,Color3.fromRGB(14,10,26)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(8,7,14)),ColorSequenceKeypoint.new(1,Color3.fromRGB(12,9,20))}
-bgGrad.Rotation=125
+bgGrad.Color=ColorSequence.new{
+    ColorSequenceKeypoint.new(0,Color3.fromRGB(14,10,26)),
+    ColorSequenceKeypoint.new(0.5,Color3.fromRGB(8,7,14)),
+    ColorSequenceKeypoint.new(1,Color3.fromRGB(12,9,20)),
+}; bgGrad.Rotation=125
 task.spawn(function() local r=125; while bgGrad and bgGrad.Parent do r=r+0.04; bgGrad.Rotation=r; task.wait(0.06) end end)
 
 local screenBlur=Instance.new("BlurEffect"); screenBlur.Size=0; screenBlur.Parent=game.Workspace.CurrentCamera
-local miniBar -- forward declare for FIX Bug#6
+local miniBar
 local miniBarVisible=false
 
 local function setBlur(sz,dur) TweenService:Create(screenBlur,TweenInfo.new(dur or 0.35,Enum.EasingStyle.Quint),{Size=sz}):Play() end
@@ -78,10 +88,9 @@ local function applyUIBgMode(mode)
     elseif mode=="Blur" then lib.smooth(bgF,{BackgroundTransparency=0.55},0.3):Play(); lib.smooth(root,{BackgroundTransparency=0.35},0.3):Play() end
     refreshBlur()
 end
--- FIX Bug#6: guard against miniBar being nil
 local function applyMiniBgMode(mode)
     UISettings.miniBgMode=mode
-    if not miniBar then return end  -- guard
+    if not miniBar then return end
     if mode=="Solid" then miniBar.BackgroundTransparency=0
     elseif mode=="Transparent" then miniBar.BackgroundTransparency=0.72
     elseif mode=="Blur" then miniBar.BackgroundTransparency=0.40 end
@@ -106,7 +115,8 @@ local function spawnParticles(count)
                 local nx=math.clamp(p.Position.X.Scale+math.random(-7,7)/100,0.01,0.99)
                 local ny=math.clamp(p.Position.Y.Scale+math.random(-7,7)/100,0.01,0.99)
                 local dur=math.random(40,70)/10
-                TweenService:Create(p,TweenInfo.new(dur,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,0,true),{Position=UDim2.new(nx,0,ny,0),BackgroundTransparency=math.random(44,80)/100}):Play()
+                TweenService:Create(p,TweenInfo.new(dur,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,0,true),
+                    {Position=UDim2.new(nx,0,ny,0),BackgroundTransparency=math.random(44,80)/100}):Play()
                 task.wait(dur)
             end
         end)
@@ -159,7 +169,8 @@ do
     end)
     UIS.InputChanged:Connect(function(i)
         if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
-            local d=i.Position-dragStart; root.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y) end
+            local d=i.Position-dragStart
+            root.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y) end
     end)
     UIS.InputEnded:Connect(function(i)
         if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=false end
@@ -195,7 +206,7 @@ end
 
 -- MINIBAR
 local miniExpLbl=nil
-miniBar=Instance.new("Frame",gui) -- assign forward-declared local
+miniBar=Instance.new("Frame",gui)
 miniBar.Size=UDim2.new(0,46,0,46); miniBar.Position=UDim2.new(0.5,-23,0,10)
 miniBar.BackgroundColor3=Color3.fromRGB(11,10,18); miniBar.BorderSizePixel=0; miniBar.ZIndex=200; miniBar.Visible=false
 Instance.new("UICorner",miniBar).CornerRadius=UDim.new(0,23)
@@ -262,7 +273,6 @@ local sideList=Instance.new("Frame",sidebar); sideList.Size=UDim2.new(1,0,1,-8);
 sideList.BackgroundTransparency=1; sideList.ZIndex=5
 local slL=Instance.new("UIListLayout",sideList); slL.Padding=UDim.new(0,4); slL.SortOrder=Enum.SortOrder.LayoutOrder; slL.HorizontalAlignment=Enum.HorizontalAlignment.Center
 local slP=Instance.new("UIPadding",sideList); slP.PaddingLeft=UDim.new(0,6); slP.PaddingRight=UDim.new(0,6)
-
 local contentArea=Instance.new("Frame",inner); contentArea.Name="ContentArea"
 contentArea.Size=UDim2.new(1,-SIDEBAR_W-1,1,-TOPBAR_H-1); contentArea.Position=UDim2.new(0,SIDEBAR_W+1,0,TOPBAR_H+1)
 contentArea.BackgroundTransparency=1; contentArea.ZIndex=3
@@ -333,5 +343,3 @@ startLogic(refs,T)
 
 _G.YiUI=refs
 print("[YiDaMuSake] v8.1 loaded - Anti-AFK aktif")
-_G.YiUI = refs
-print("[YiDaMuSake] v7 loaded!")
