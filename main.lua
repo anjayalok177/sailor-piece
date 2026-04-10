@@ -4,7 +4,6 @@ local function load(file)
     return loadstring(game:HttpGet(RAW..file))()
 end
 
--- Cleanup
 pcall(function()
     local old=game:GetService("CoreGui"):FindFirstChild("YiDaMuSake")
     if old then old:Destroy() end
@@ -24,36 +23,35 @@ local TweenService = game:GetService("TweenService")
 local UIS          = game:GetService("UserInputService")
 local player       = Players.LocalPlayer
 
--- Screen GUI
 local gui = Instance.new("ScreenGui")
-gui.Name = "YiDaMuSake"; gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.IgnoreGuiInset = true; gui.Parent = game:GetService("CoreGui")
+gui.Name="YiDaMuSake"; gui.ResetOnSpawn=false
+gui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+gui.IgnoreGuiInset=true; gui.Parent=game:GetService("CoreGui")
 
-local vp       = game.Workspace.CurrentCamera.ViewportSize
-local WIN_W    = math.min(vp.X*0.88, 680)
-local WIN_H    = math.min(vp.Y*0.64, 440)
+local vp        = game.Workspace.CurrentCamera.ViewportSize
+local WIN_W     = math.min(vp.X*0.88,680)
+local WIN_H     = math.min(vp.Y*0.64,440)
 local SIDEBAR_W = 64
 local TOPBAR_H  = 48
 local BOTBAR_H  = 24
 
--- Root
-local root = Instance.new("Frame")
-root.Name = "Root"; root.Size = UDim2.new(0,WIN_W,0,WIN_H)
-root.Position = UDim2.new(0.5,-WIN_W/2,0.5,-WIN_H/2)
-root.BackgroundColor3 = T.bg; root.BorderSizePixel = 0
-root.ClipsDescendants = false; root.Active = true; root.Parent = gui
-local rootCorner = Instance.new("UICorner",root)
-rootCorner.CornerRadius = UDim.new(0,14)
+-- Root window
+local root=Instance.new("Frame")
+root.Name="Root"; root.Size=UDim2.new(0,WIN_W,0,WIN_H)
+root.Position=UDim2.new(0.5,-WIN_W/2,0.5,-WIN_H/2)
+root.BackgroundColor3=T.bg; root.BorderSizePixel=0
+root.ClipsDescendants=false; root.Active=true; root.Parent=gui
+local rootCorner=Instance.new("UICorner",root)
+rootCorner.CornerRadius=UDim.new(0,14)
 
-local rootGlow = Instance.new("ImageLabel",root)
+local rootGlow=Instance.new("ImageLabel",root)
 rootGlow.Size=UDim2.new(1,100,1,100); rootGlow.Position=UDim2.new(0.5,0,0.5,0)
 rootGlow.AnchorPoint=Vector2.new(0.5,0.5); rootGlow.BackgroundTransparency=1
 rootGlow.Image="rbxassetid://5028857084"; rootGlow.ImageColor3=T.accent
 rootGlow.ImageTransparency=0.88; rootGlow.ZIndex=0
 lib.regAccent("imgAccent",rootGlow)
 
-local rootStroke = Instance.new("UIStroke",root)
+local rootStroke=Instance.new("UIStroke",root)
 rootStroke.Color=T.border; rootStroke.Thickness=1.5; rootStroke.Transparency=0.1
 lib.regAccent("stAccent",rootStroke)
 
@@ -70,11 +68,11 @@ task.spawn(function()
     end
 end)
 
-local inner = Instance.new("Frame",root)
+local inner=Instance.new("Frame",root)
 inner.Size=UDim2.new(1,0,1,0); inner.BackgroundTransparency=1
 inner.ClipsDescendants=true; inner.ZIndex=1
 
-local bgF = Instance.new("Frame",inner)
+local bgF=Instance.new("Frame",inner)
 bgF.Size=UDim2.new(1,0,1,0); bgF.BackgroundColor3=T.bg
 bgF.BorderSizePixel=0; bgF.ZIndex=1
 Instance.new("UICorner",bgF).CornerRadius=UDim.new(0,14)
@@ -83,13 +81,20 @@ bgGrad.Color=ColorSequence.new{
     ColorSequenceKeypoint.new(0,Color3.fromRGB(14,10,26)),
     ColorSequenceKeypoint.new(0.5,Color3.fromRGB(8,7,14)),
     ColorSequenceKeypoint.new(1,Color3.fromRGB(12,9,20)),
-}; bgGrad.Rotation=125
+}
+bgGrad.Rotation=125
+task.spawn(function()
+    local r=125
+    while bgGrad and bgGrad.Parent do
+        r=r+0.04; bgGrad.Rotation=r; task.wait(0.06)
+    end
+end)
 
 -- Blur
-local screenBlur = Instance.new("BlurEffect")
+local screenBlur=Instance.new("BlurEffect")
 screenBlur.Size=0; screenBlur.Parent=game.Workspace.CurrentCamera
 
--- KRITIS: miniBar forward-declared SEBELUM applyMiniBgMode/refreshBlur
+-- PENTING: miniBar forward-declare SEBELUM applyMiniBgMode
 local miniBar
 local miniBarVisible=false
 
@@ -112,7 +117,8 @@ local function applyUIBgMode(mode)
     elseif mode=="Blur" then
         lib.smooth(bgF,{BackgroundTransparency=0.55},0.3):Play()
         lib.smooth(root,{BackgroundTransparency=0.35},0.3):Play()
-    end; refreshBlur()
+    end
+    refreshBlur()
 end
 local function applyMiniBgMode(mode)
     UISettings.miniBgMode=mode
@@ -150,7 +156,8 @@ local function spawnParticles(count)
                     Enum.EasingDirection.InOut,0,true),{
                     Position=UDim2.new(nx,0,ny,0),
                     BackgroundTransparency=math.random(44,80)/100,
-                }):Play(); task.wait(dur)
+                }):Play()
+                task.wait(dur)
             end
         end)
     end
@@ -166,12 +173,13 @@ Instance.new("UICorner",topBar).CornerRadius=UDim.new(0,14)
 local topFix=Instance.new("Frame",topBar)
 topFix.Size=UDim2.new(1,0,0,14); topFix.Position=UDim2.new(0,0,1,-14)
 topFix.BackgroundColor3=Color3.fromRGB(9,8,16); topFix.BorderSizePixel=0; topFix.ZIndex=5
+
 local topSep=Instance.new("Frame",inner)
 topSep.Size=UDim2.new(1,0,0,1); topSep.Position=UDim2.new(0,0,0,TOPBAR_H)
 topSep.BackgroundColor3=T.border; topSep.BackgroundTransparency=0.1
 topSep.BorderSizePixel=0; topSep.ZIndex=6
 
--- Icon
+-- Icon di topbar
 local iconBg=Instance.new("Frame",topBar)
 iconBg.Size=UDim2.new(0,28,0,28); iconBg.Position=UDim2.new(0,10,0.5,0)
 iconBg.AnchorPoint=Vector2.new(0,0.5); iconBg.BackgroundColor3=T.accentSoft
@@ -179,7 +187,8 @@ iconBg.BorderSizePixel=0; iconBg.ZIndex=7
 Instance.new("UICorner",iconBg).CornerRadius=UDim.new(0,7)
 lib.regAccent("bgSoft",iconBg)
 Instance.new("UIGradient",iconBg).Color=ColorSequence.new{
-    ColorSequenceKeypoint.new(0,T.accentGlow),ColorSequenceKeypoint.new(1,T.accentSoft)
+    ColorSequenceKeypoint.new(0,T.accentGlow),
+    ColorSequenceKeypoint.new(1,T.accentSoft),
 }
 local iconImg=Instance.new("ImageLabel",iconBg)
 iconImg.Size=UDim2.new(0.8,0,0.8,0); iconImg.Position=UDim2.new(0.5,0,0.5,0)
@@ -191,16 +200,18 @@ titleL.Size=UDim2.new(0,140,0,15); titleL.Position=UDim2.new(0,46,0,7)
 titleL.BackgroundTransparency=1; titleL.Text="Yi Da Mu Sake"
 titleL.TextColor3=T.text; titleL.Font=Enum.Font.GothamBold
 titleL.TextSize=13; titleL.TextXAlignment=Enum.TextXAlignment.Left; titleL.ZIndex=7
+
 local subL=Instance.new("TextLabel",topBar)
 subL.Size=UDim2.new(0,140,0,11); subL.Position=UDim2.new(0,46,0,25)
-subL.BackgroundTransparency=1; subL.Text="sailor piece  •  v8"
+subL.BackgroundTransparency=1; subL.Text="sailor piece  v8"
 subL.TextColor3=T.textDim; subL.Font=Enum.Font.Gotham
 subL.TextSize=9; subL.TextXAlignment=Enum.TextXAlignment.Left; subL.ZIndex=7
 
--- Search
+-- Search bar
 local searchFrame=Instance.new("Frame",topBar)
-searchFrame.Size=UDim2.new(0,140,0,26); searchFrame.Position=UDim2.new(0.5,-40,0.5,0)
-searchFrame.AnchorPoint=Vector2.new(0,0.5); searchFrame.BackgroundColor3=Color3.fromRGB(14,13,22)
+searchFrame.Size=UDim2.new(0,138,0,26); searchFrame.Position=UDim2.new(0.5,-40,0.5,0)
+searchFrame.AnchorPoint=Vector2.new(0,0.5)
+searchFrame.BackgroundColor3=Color3.fromRGB(14,13,22)
 searchFrame.BorderSizePixel=0; searchFrame.ZIndex=8
 Instance.new("UICorner",searchFrame).CornerRadius=UDim.new(0,7)
 local searchStroke=Instance.new("UIStroke",searchFrame)
@@ -215,6 +226,12 @@ searchBox.BackgroundTransparency=1; searchBox.PlaceholderText="Search..."
 searchBox.Text=""; searchBox.TextColor3=T.text
 searchBox.PlaceholderColor3=T.textDim; searchBox.Font=Enum.Font.Gotham
 searchBox.TextSize=11; searchBox.ZIndex=9; searchBox.ClearTextOnFocus=false
+searchFrame.MouseEnter:Connect(function()
+    lib.smooth(searchStroke,{Color=T.accentGlow,Transparency=0.05},0.12):Play()
+end)
+searchFrame.MouseLeave:Connect(function()
+    lib.smooth(searchStroke,{Color=T.border,Transparency=0.2},0.12):Play()
+end)
 
 -- Window buttons
 local function mkWinBtn(offX,col,sym)
@@ -225,9 +242,16 @@ local function mkWinBtn(offX,col,sym)
     Instance.new("UICorner",b).CornerRadius=UDim.new(1,0)
     local l=Instance.new("TextLabel",b)
     l.Size=UDim2.new(1,0,1,0); l.BackgroundTransparency=1; l.Text=sym
-    l.TextColor3=T.white; l.Font=Enum.Font.GothamBold; l.TextSize=9; l.TextTransparency=0.4; l.ZIndex=9
-    b.MouseEnter:Connect(function() lib.smooth(b,{BackgroundTransparency=0.15},0.1):Play(); lib.smooth(l,{TextTransparency=0},0.1):Play() end)
-    b.MouseLeave:Connect(function() lib.smooth(b,{BackgroundTransparency=0},0.1):Play(); lib.smooth(l,{TextTransparency=0.4},0.1):Play() end)
+    l.TextColor3=T.white; l.Font=Enum.Font.GothamBold
+    l.TextSize=9; l.TextTransparency=0.4; l.ZIndex=9
+    b.MouseEnter:Connect(function()
+        lib.smooth(b,{BackgroundTransparency=0.15},0.1):Play()
+        lib.smooth(l,{TextTransparency=0},0.1):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        lib.smooth(b,{BackgroundTransparency=0},0.1):Play()
+        lib.smooth(l,{TextTransparency=0.4},0.1):Play()
+    end)
     return b
 end
 local closeBtn=mkWinBtn(-10,Color3.fromRGB(198,50,62),"×")
@@ -237,31 +261,37 @@ local minBtn  =mkWinBtn(-32,Color3.fromRGB(185,138,22),"—")
 do
     local drag,dragStart,startPos=false,nil,nil
     topBar.InputBegan:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+        if i.UserInputType==Enum.UserInputType.MouseButton1
+        or i.UserInputType==Enum.UserInputType.Touch then
             drag=true; dragStart=i.Position; startPos=root.Position
         end
     end)
     UIS.InputChanged:Connect(function(i)
-        if drag and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+        if drag and (i.UserInputType==Enum.UserInputType.MouseMovement
+        or i.UserInputType==Enum.UserInputType.Touch) then
             local d=i.Position-dragStart
-            root.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
+            root.Position=UDim2.new(
+                startPos.X.Scale, startPos.X.Offset+d.X,
+                startPos.Y.Scale, startPos.Y.Offset+d.Y)
         end
     end)
     UIS.InputEnded:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=false end
+        if i.UserInputType==Enum.UserInputType.MouseButton1
+        or i.UserInputType==Enum.UserInputType.Touch then drag=false end
     end)
 end
 
--- Resize
+-- Resize handle
 local rh=Instance.new("TextButton",root)
-rh.Size=UDim2.new(0,18,0,18); rh.Position=UDim2.new(1,-2,1,-2); rh.AnchorPoint=Vector2.new(1,1)
-rh.BackgroundColor3=Color3.fromRGB(22,20,34); rh.BackgroundTransparency=0.4
-rh.Text=""; rh.BorderSizePixel=0; rh.ZIndex=20
+rh.Size=UDim2.new(0,18,0,18); rh.Position=UDim2.new(1,-2,1,-2)
+rh.AnchorPoint=Vector2.new(1,1); rh.BackgroundColor3=Color3.fromRGB(22,20,34)
+rh.BackgroundTransparency=0.4; rh.Text=""; rh.BorderSizePixel=0; rh.ZIndex=20
 Instance.new("UICorner",rh).CornerRadius=UDim.new(0,5)
 for di=1,3 do
     local dot=Instance.new("Frame",rh)
     dot.Size=UDim2.new(0,2,0,2); dot.Position=UDim2.new(0,2+di*4,0,2+di*4)
-    dot.BackgroundColor3=T.accentGlow; dot.BackgroundTransparency=0.4; dot.BorderSizePixel=0; dot.ZIndex=21
+    dot.BackgroundColor3=T.accentGlow; dot.BackgroundTransparency=0.4
+    dot.BorderSizePixel=0; dot.ZIndex=21
     Instance.new("UICorner",dot).CornerRadius=UDim.new(1,0)
 end
 do
@@ -272,7 +302,8 @@ do
         rStartW=root.AbsoluteSize.X; rStartH=root.AbsoluteSize.Y
     end)
     UIS.InputChanged:Connect(function(i)
-        if resizing and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+        if resizing and (i.UserInputType==Enum.UserInputType.MouseMovement
+        or i.UserInputType==Enum.UserInputType.Touch) then
             local cur=(i.UserInputType==Enum.UserInputType.Touch) and i.Position or UIS:GetMouseLocation()
             WIN_W=math.clamp(rStartW+(cur.X-rsStart.X),MIN_W,vp.X*0.96)
             WIN_H=math.clamp(rStartH+(cur.Y-rsStart.Y),MIN_H,vp.Y*0.96)
@@ -280,13 +311,15 @@ do
         end
     end)
     UIS.InputEnded:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then resizing=false end
+        if i.UserInputType==Enum.UserInputType.MouseButton1
+        or i.UserInputType==Enum.UserInputType.Touch then resizing=false end
     end)
 end
 
 -- Sidebar
 local sidebar=Instance.new("Frame",inner)
-sidebar.Name="Sidebar"; sidebar.Size=UDim2.new(0,SIDEBAR_W,1,-TOPBAR_H-1)
+sidebar.Name="Sidebar"
+sidebar.Size=UDim2.new(0,SIDEBAR_W,1,-TOPBAR_H-1)
 sidebar.Position=UDim2.new(0,0,0,TOPBAR_H+1)
 sidebar.BackgroundColor3=Color3.fromRGB(9,8,16)
 sidebar.BorderSizePixel=0; sidebar.ZIndex=4; sidebar.ClipsDescendants=true
@@ -294,10 +327,13 @@ Instance.new("UICorner",sidebar).CornerRadius=UDim.new(0,14)
 local sideFix=Instance.new("Frame",sidebar)
 sideFix.Size=UDim2.new(0,14,1,0); sideFix.Position=UDim2.new(1,-14,0,0)
 sideFix.BackgroundColor3=Color3.fromRGB(9,8,16); sideFix.BorderSizePixel=0; sideFix.ZIndex=4
+
 local sideVLine=Instance.new("Frame",inner)
-sideVLine.Size=UDim2.new(0,1,1,-TOPBAR_H-1); sideVLine.Position=UDim2.new(0,SIDEBAR_W,0,TOPBAR_H+1)
+sideVLine.Size=UDim2.new(0,1,1,-TOPBAR_H-1)
+sideVLine.Position=UDim2.new(0,SIDEBAR_W,0,TOPBAR_H+1)
 sideVLine.BackgroundColor3=T.border; sideVLine.BackgroundTransparency=0.1
 sideVLine.BorderSizePixel=0; sideVLine.ZIndex=6
+
 local sideList=Instance.new("Frame",sidebar)
 sideList.Size=UDim2.new(1,0,1,-8); sideList.Position=UDim2.new(0,0,0,10)
 sideList.BackgroundTransparency=1; sideList.ZIndex=5
@@ -315,9 +351,9 @@ contentArea.BackgroundTransparency=1; contentArea.ZIndex=3
 
 -- Sidebar tabs
 local MAIN_TABS={
-    {name="Info", sym="ⓘ", tip="Info"},
-    {name="Main", sym="⌂",tip="Main"},
-    {name="Settings",sym="⚙",tip="Settings"},
+    {name="Info",     sym="ℹ", tip="Info"},
+    {name="Main",     sym="⚡",tip="Main"},
+    {name="Settings", sym="⚙", tip="Settings"},
 }
 local sideData={}
 local function switchMainTab(name)
@@ -328,27 +364,32 @@ local function switchMainTab(name)
         d.bar.Visible=on; d.page.Visible=on
     end
 end
+
 for i,tab in ipairs(MAIN_TABS) do
     local btn=Instance.new("TextButton",sideList)
     btn.Size=UDim2.new(1,0,0,50); btn.BackgroundTransparency=1
     btn.Text=""; btn.BorderSizePixel=0; btn.LayoutOrder=i; btn.ZIndex=6
     Instance.new("UICorner",btn).CornerRadius=UDim.new(0,10)
+
     local bar=Instance.new("Frame",btn)
     bar.Size=UDim2.new(0,3,0.45,0); bar.Position=UDim2.new(0,-4,0.5,0)
     bar.AnchorPoint=Vector2.new(0,0.5); bar.BackgroundColor3=T.accentGlow
     bar.BorderSizePixel=0; bar.Visible=false; bar.ZIndex=7
     Instance.new("UICorner",bar).CornerRadius=UDim.new(1,0)
     lib.regAccent("bgGlow",bar)
+
     local iconBg2=Instance.new("Frame",btn)
     iconBg2.Size=UDim2.new(0,38,0,38); iconBg2.Position=UDim2.new(0.5,0,0.5,0)
     iconBg2.AnchorPoint=Vector2.new(0.5,0.5); iconBg2.BackgroundColor3=T.accentSoft
     iconBg2.BackgroundTransparency=1; iconBg2.BorderSizePixel=0; iconBg2.ZIndex=6
     Instance.new("UICorner",iconBg2).CornerRadius=UDim.new(0,10)
     lib.regAccent("bgSoft",iconBg2)
+
     local iconL=Instance.new("TextLabel",btn)
     iconL.Size=UDim2.new(1,0,1,0); iconL.BackgroundTransparency=1
     iconL.Text=tab.sym; iconL.TextColor3=T.textDim
     iconL.Font=Enum.Font.GothamBold; iconL.TextSize=20; iconL.ZIndex=7
+
     local tooltip=Instance.new("TextLabel",btn)
     tooltip.Size=UDim2.new(0,65,0,20); tooltip.Position=UDim2.new(1,6,0.5,0)
     tooltip.AnchorPoint=Vector2.new(0,0.5); tooltip.BackgroundColor3=Color3.fromRGB(20,18,32)
@@ -356,20 +397,29 @@ for i,tab in ipairs(MAIN_TABS) do
     tooltip.TextSize=10; tooltip.Visible=false; tooltip.ZIndex=50; tooltip.BorderSizePixel=0
     Instance.new("UICorner",tooltip).CornerRadius=UDim.new(0,6)
     Instance.new("UIStroke",tooltip).Color=T.borderBright
-    btn.MouseEnter:Connect(function() tooltip.Visible=true; lib.smooth(iconBg2,{BackgroundTransparency=0.85},0.12):Play() end)
+
+    btn.MouseEnter:Connect(function()
+        tooltip.Visible=true
+        lib.smooth(iconBg2,{BackgroundTransparency=0.85},0.12):Play()
+    end)
     btn.MouseLeave:Connect(function()
         tooltip.Visible=false
         if not (sideData[tab.name] and sideData[tab.name].bar.Visible) then
             lib.smooth(iconBg2,{BackgroundTransparency=1},0.12):Play()
         end
     end)
+
     if i<#MAIN_TABS then
         local sep=Instance.new("Frame",btn)
         sep.Size=UDim2.new(0.5,0,0,1); sep.Position=UDim2.new(0.25,0,1,-1)
-        sep.BackgroundColor3=T.border; sep.BackgroundTransparency=0.4; sep.BorderSizePixel=0; sep.ZIndex=7
+        sep.BackgroundColor3=T.border; sep.BackgroundTransparency=0.4
+        sep.BorderSizePixel=0; sep.ZIndex=7
     end
+
     local page=Instance.new("Frame",contentArea)
-    page.Size=UDim2.new(1,0,1,0); page.BackgroundTransparency=1; page.Visible=false; page.ZIndex=3
+    page.Size=UDim2.new(1,0,1,0); page.BackgroundTransparency=1
+    page.Visible=false; page.ZIndex=3
+
     sideData[tab.name]={name=tab.name,btn=btn,bar=bar,iconL=iconL,iconBg=iconBg2,page=page}
     btn.MouseButton1Click:Connect(function()
         lib.ripple(btn,btn.AbsoluteSize.X*0.5,btn.AbsoluteSize.Y*0.5,T.accent)
@@ -377,7 +427,7 @@ for i,tab in ipairs(MAIN_TABS) do
     end)
 end
 
--- Search
+-- Search function
 searchBox:GetPropertyChangedSignal("Text"):Connect(function()
     local q=searchBox.Text:lower()
     local function scan(frame)
@@ -389,7 +439,8 @@ searchBox:GetPropertyChangedSignal("Text"):Connect(function()
                         else
                             local hit=false
                             for _,desc in ipairs(item:GetDescendants()) do
-                                if (desc:IsA("TextLabel") or desc:IsA("TextButton")) and desc.Text:lower():find(q,1,true) then
+                                if (desc:IsA("TextLabel") or desc:IsA("TextButton"))
+                                and desc.Text:lower():find(q,1,true) then
                                     hit=true; break
                                 end
                             end
@@ -409,6 +460,140 @@ botBar.Size=UDim2.new(1,0,0,BOTBAR_H); botBar.Position=UDim2.new(0,0,1,-BOTBAR_H
 botBar.BackgroundColor3=Color3.fromRGB(8,7,14); botBar.BorderSizePixel=0; botBar.ZIndex=5
 Instance.new("UICorner",botBar).CornerRadius=UDim.new(0,14)
 local botFix=Instance.new("Frame",botBar)
-botFix.Size=UDim2.new(1,0,0,14); botFix.BackgroundColor3=Color3.fromRGB(8,7,14); botFix.BorderSizePixel=0; botFix.ZIndex=5
+botFix.Size=UDim2.new(1,0,0,14); botFix.BackgroundColor3=Color3.fromRGB(8,7,14)
+botFix.BorderSizePixel=0; botFix.ZIndex=5
+
 local verL=Instance.new("TextLabel",botBar)
-verL.Size=UDim2.new(0.5,0,1,0); verL.Position=U​​​​​​​​​​​​​​​​
+verL.Size=UDim2.new(0.5,0,1,0); verL.Position=UDim2.new(0,10,0,0)
+verL.BackgroundTransparency=1; verL.Text="sailor piece  v8"
+verL.TextColor3=T.textDim; verL.Font=Enum.Font.Gotham
+verL.TextSize=9; verL.TextXAlignment=Enum.TextXAlignment.Left; verL.ZIndex=6
+
+local dotL=Instance.new("TextLabel",botBar)
+dotL.Size=UDim2.new(0.5,-10,1,0); dotL.Position=UDim2.new(0.5,0,0,0)
+dotL.BackgroundTransparency=1; dotL.Text="● online"
+dotL.TextColor3=T.green; dotL.Font=Enum.Font.GothamBold
+dotL.TextSize=9; dotL.TextXAlignment=Enum.TextXAlignment.Right; dotL.ZIndex=6
+task.spawn(function()
+    while dotL and dotL.Parent do
+        lib.ease(dotL,{TextColor3=T.green},0.9):Play(); task.wait(1.0)
+        lib.ease(dotL,{TextColor3=T.greenDim},0.9):Play(); task.wait(1.0)
+    end
+end)
+
+-- Minibar (assign ke forward-declared local)
+miniBar=Instance.new("Frame",gui)
+miniBar.Size=UDim2.new(0,44,0,44); miniBar.Position=UDim2.new(0.5,-22,0,10)
+miniBar.BackgroundColor3=Color3.fromRGB(11,10,18); miniBar.BorderSizePixel=0
+miniBar.ZIndex=200; miniBar.Visible=false
+Instance.new("UICorner",miniBar).CornerRadius=UDim.new(0,22)
+local miniStroke=Instance.new("UIStroke",miniBar)
+miniStroke.Color=T.borderBright; miniStroke.Thickness=1.4; miniStroke.Transparency=0.12
+
+local miniGlow=Instance.new("ImageLabel",miniBar)
+miniGlow.Size=UDim2.new(1,32,1,32); miniGlow.Position=UDim2.new(0.5,0,0.5,0)
+miniGlow.AnchorPoint=Vector2.new(0.5,0.5); miniGlow.BackgroundTransparency=1
+miniGlow.Image="rbxassetid://5028857084"; miniGlow.ImageColor3=T.accent
+miniGlow.ImageTransparency=0.84; miniGlow.ZIndex=0
+lib.regAccent("imgAccent",miniGlow)
+
+local miniIconBg=Instance.new("Frame",miniBar)
+miniIconBg.Size=UDim2.new(0,34,0,34); miniIconBg.Position=UDim2.new(0,5,0.5,0)
+miniIconBg.AnchorPoint=Vector2.new(0,0.5); miniIconBg.BackgroundColor3=T.accentSoft
+miniIconBg.BorderSizePixel=0; miniIconBg.ZIndex=201
+Instance.new("UICorner",miniIconBg).CornerRadius=UDim.new(0,9)
+lib.regAccent("bgSoft",miniIconBg)
+Instance.new("UIGradient",miniIconBg).Color=ColorSequence.new{
+    ColorSequenceKeypoint.new(0,T.accentGlow),
+    ColorSequenceKeypoint.new(1,T.accentSoft),
+}
+local miniIconImg=Instance.new("ImageLabel",miniIconBg)
+miniIconImg.Size=UDim2.new(0.82,0,0.82,0); miniIconImg.Position=UDim2.new(0.5,0,0.5,0)
+miniIconImg.AnchorPoint=Vector2.new(0.5,0.5); miniIconImg.BackgroundTransparency=1
+miniIconImg.Image="rbxassetid://110843044052526"; miniIconImg.ZIndex=202
+
+local miniHit=Instance.new("TextButton",miniBar)
+miniHit.Size=UDim2.new(1,0,1,0); miniHit.BackgroundTransparency=1
+miniHit.Text=""; miniHit.ZIndex=203
+
+task.spawn(function()
+    while miniBar and miniBar.Parent do
+        if miniBar.Visible then
+            lib.ease(miniGlow,{ImageTransparency=0.70},0.9):Play(); task.wait(1.0)
+            lib.ease(miniGlow,{ImageTransparency=0.86},0.9):Play(); task.wait(1.0)
+        else task.wait(0.5) end
+    end
+end)
+
+local miniExpLbl=nil
+
+-- Close button
+closeBtn.MouseButton1Click:Connect(function()
+    setBlur(0,0.18)
+    lib.smooth(root,{Size=UDim2.new(0,WIN_W,0,0),BackgroundTransparency=1},0.22):Play()
+    task.wait(0.24); gui:Destroy()
+    pcall(function() screenBlur:Destroy() end)
+end)
+
+-- Minimize button
+minBtn.MouseButton1Click:Connect(function()
+    miniBarVisible=true
+    lib.smooth(root,{Size=UDim2.new(0,WIN_W,0,0),BackgroundTransparency=1},0.22):Play()
+    task.wait(0.24); root.Visible=false
+    applyMiniBgMode(UISettings.miniBgMode)
+    miniBar.Size=UDim2.new(0,44,0,44); miniBar.Position=UDim2.new(0.5,-22,0,10)
+    miniBar.Visible=true
+    lib.spring(miniBar,{Size=UDim2.new(0,222,0,44)},0.44):Play()
+    task.spawn(function()
+        task.wait(0.12)
+        lib.smooth(miniBar,{Position=UDim2.new(0.5,-111,0,10)},0.20):Play()
+    end)
+    task.spawn(function()
+        task.wait(0.20)
+        if miniExpLbl then miniExpLbl:Destroy(); miniExpLbl=nil end
+        miniExpLbl=Instance.new("TextLabel",miniBar)
+        miniExpLbl.Size=UDim2.new(1,-48,1,0); miniExpLbl.Position=UDim2.new(0,44,0,0)
+        miniExpLbl.BackgroundTransparency=1; miniExpLbl.Text="Yi Da Mu Sake"
+        miniExpLbl.TextColor3=T.text; miniExpLbl.Font=Enum.Font.GothamBold
+        miniExpLbl.TextSize=13; miniExpLbl.TextXAlignment=Enum.TextXAlignment.Center
+        miniExpLbl.TextTransparency=1; miniExpLbl.ZIndex=202
+        lib.smooth(miniExpLbl,{TextTransparency=0},0.24):Play()
+    end)
+end)
+
+-- Restore from minibar
+miniHit.MouseButton1Click:Connect(function()
+    miniBarVisible=false; refreshBlur()
+    if miniExpLbl then
+        lib.smooth(miniExpLbl,{TextTransparency=1},0.12):Play()
+        task.wait(0.14)
+        pcall(function() if miniExpLbl then miniExpLbl:Destroy(); miniExpLbl=nil end end)
+    end
+    lib.smooth(miniBar,{Size=UDim2.new(0,44,0,44),Position=UDim2.new(0.5,-22,0,10)},0.18):Play()
+    task.wait(0.20); miniBar.Visible=false; root.Visible=true
+    root.Size=UDim2.new(0,WIN_W,0,0); root.BackgroundTransparency=1
+    lib.spring(root,{Size=UDim2.new(0,WIN_W,0,WIN_H),BackgroundTransparency=0},0.42):Play()
+    task.delay(0.5,function() applyUIBgMode(UISettings.uiBgMode) end)
+end)
+
+-- Entrance animation
+root.BackgroundTransparency=1; root.Size=UDim2.new(0,WIN_W,0,0)
+task.wait(0.08)
+lib.spring(root,{Size=UDim2.new(0,WIN_W,0,WIN_H),BackgroundTransparency=0},0.50):Play()
+switchMainTab("Info")
+
+-- Load pages + logic (gui WAJIB dikirim ke buildPages untuk notifikasi)
+local buildPages = load("pages.lua")
+local refs = buildPages(
+    lib, sideData, contentArea,
+    bgF, root, rootCorner, rootStroke, rootGlow,
+    particleList, spawnParticles,
+    applyUIBgMode, applyMiniBgMode,
+    gui   -- <-- ini yang menyebabkan crash jika tidak ada
+)
+
+local startLogic = load("logic.lua")
+startLogic(refs, T)
+
+_G.YiUI = refs
+print("[YiDaMuSake] v8 loaded")
