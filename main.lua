@@ -1,6 +1,5 @@
 -- ╔══════════════════════════════════════════╗
 -- ║  Yi Da Mu Sake — Main Loader  v8.2       ║
--- ║  Professional rewrite dengan error guard ║
 -- ╚══════════════════════════════════════════╝
 
 local RAW = "https://raw.githubusercontent.com/anjayalok177/sailor-piece/refs/heads/main/"
