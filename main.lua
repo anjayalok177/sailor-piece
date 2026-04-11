@@ -2,7 +2,27 @@
 -- ║  Yi Da Mu Sake — Main Loader  v8.2       ║
 -- ╚══════════════════════════════════════════╝
 
-local RAW = "https://raw.githubusercontent.com/anjayalok177/sailor-piece/refs/heads/main/"
+local RAW = "https://raw.githubusercontent.com/anjayalok177/sailor-piece/main/"
+
+local function load(file)
+    local attempts = 0
+    while attempts < 3 do
+        attempts = attempts + 1
+        local ok, res = pcall(function()
+            local src = game:HttpGet(RAW..file, true)
+            if not src or src == "" or src:sub(1,1) == "<" then
+                error("Bukan Lua valid, kemungkinan 404")
+            end
+            local fn, err = loadstring(src)
+            if not fn then error("Compile error: "..tostring(err)) end
+            return fn()
+        end)
+        if ok then return res end
+        warn("[Load gagal attempt "..attempts.."]: "..tostring(res))
+        task.wait(1.5)
+    end
+    error("FATAL gagal load: "..file)
+end
 
 -- =====================
 -- SAFE LOADER
