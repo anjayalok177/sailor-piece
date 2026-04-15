@@ -4,7 +4,6 @@
 
 local RAW = "https://raw.githubusercontent.com/anjayalok177/sailor-piece/refs/heads/main/"
 
--- SATU fungsi load saja, dengan retry + HTML check
 local function load(file)
     local attempts = 0
     local lastErr
@@ -43,20 +42,21 @@ end)
 
 -- ANTI-AFK
 task.spawn(function()
-    local player = game:GetService("Players").LocalPlayer
-    while true do
-        task.wait(55)
+    local VU  = game:GetService("VirtualUser")
+    local UIS = game:GetService("UserInputService")
+
+    game:GetService("Players").LocalPlayer.Idled:Connect(function()
         pcall(function()
-            local char = player.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then hum.Jump = true end
-            end
+            VU:CaptureController()
+            VU:ClickButton2(Vector2.new())
         end)
+    end)
+
+        while true do
+        task.wait(240)
         pcall(function()
-            game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-            task.wait(0.1)
-            game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+
+            VU:MoveMouse(Vector2.new(0, 0))
         end)
     end
 end)
