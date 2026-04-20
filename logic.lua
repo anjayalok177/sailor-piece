@@ -428,3 +428,31 @@ return function(refs,T)
         end
     end)
 end
+
+-- =====================
+-- AUTO SPAWN WATCHER
+-- Cek setiap 2 detik apakah boss yang dipilih sudah spawn
+-- Jika iya dan autoBossOn masih false → aktifkan otomatis
+-- =====================
+task.spawn(function()
+    while true do
+        task.wait(2)
+        if not autoBossOn then
+            local bossList=refs.getAutoBossSelectedList()
+            for _,bossName in ipairs(bossList) do
+                local data=getBossData(bossName)
+                if data then
+                    local part=getBossPart(data.npc)
+                    -- Boss ditemukan dan masih hidup → auto aktif
+                    if part and isAlive(part.Parent or part) then
+                        autoBossOn=true
+                        refs.setAutoBossOnOff(true)  -- update visual tombol
+                        task.spawn(autoBossLoop)
+                        break
+                    end
+                end
+            end
+        end
+    end
+end)
+
