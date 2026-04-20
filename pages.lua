@@ -629,24 +629,28 @@ local function getSelectedWhItems()
 end
 
     return {
-        getIsland=getIsland, getFarmMode=getFarmMode,
-        getHeight=getHeight, getSpeed=getSpeed, getTD=getTD, getLD=getLD,
-        setFarmOnOff=setFarmOnOff, getFarmOn=getFarmOn, setFarmCallback=setFarmCallback,
-        getAutoHitOn=function() return getAutoHitOn() end,
-        getFaceDown=function() return getFaceDown() end,
-        getSpinOn=function() return getSpinOn() end,
-        -- Auto Skill DIHAPUS dari refs
-        setFarmStat=function() end, setFarmPhase=function() end, setFarmNPC=function() end,
-        -- Kill Boss
-        getSelectedBoss=function() return selectedBoss end,
-        setBossStat=setBossStatFn, setBossPhase=setBossPhaseFn, setBossTarget=function() end,
-        setBossOnOff=setBossOnOff, getBossOn=getBossOn, setBossCallback=setBossCallback,
-        -- Auto Kill Boss
-        getAutoBossSelectedList=getAutoBossSelectedList,
-        setAutoBossStat=setAutoBossStatFn, setAutoBossPhase=setAutoBossPhaseFn,
-        setAutoBossOnOff=setAutoBossOnOff, getAutoBossOn=getAutoBossOn, setAutoBossCallback=setAutoBossCallback,
-        -- Dungeon
-        setDungeonStat=setDungeonStat, setDungeonNPC=setDungeonNPC, setDungeonHit=setDungeonHit,
-        setDungeonOnOff=setDungeonOnOff, getDungeonOn=getDungeonOn, setDungeonCallback=setDungeonCallback,
-    }
-end
+         getIsland=getIsland, getFarmMode=getFarmMode,
+         getHeight=getHeight, getSpeed=getSpeed, getTD=getTD, getLD=getLD,
+         setFarmOnOff=setFarmOnOff, getFarmOn=getFarmOn, setFarmCallback=setFarmCallback,
+         getAutoHitOn=function() return getAutoHitOn() end,
+         getFaceDown=function()   return getFaceDown()  end,
+         getSpinOn=function()     return getSpinOn()    end,
+         setFarmStat=function() end, setFarmPhase=function() end, setFarmNPC=function() end,
+         -- Kill Boss
+         getSelectedBoss=function() return selectedBoss end,
+         setBossStat=setBossStatFn, setBossPhase=setBossPhaseFn, setBossTarget=function() end,
+         setBossOnOff=setBossOnOff, getBossOn=getBossOn, setBossCallback=setBossCallback,
+         -- Auto Kill Boss
+         getAutoBossSelectedList=getAutoBossSelectedList,
+         setAutoBossStat=setAutoBossStatFn, setAutoBossPhase=setAutoBossPhaseFn,
+         setAutoBossOnOff=setAutoBossOnOff, getAutoBossOn=getAutoBossOn, setAutoBossCallback=setAutoBossCallback,
+         -- Dungeon
+         setDungeonStat=setDungeonStat, setDungeonNPC=setDungeonNPC, setDungeonHit=setDungeonHit,
+         setDungeonOnOff=setDungeonOnOff, getDungeonOn=getDungeonOn, setDungeonCallback=setDungeonCallback,
+         -- ── Webhook (BARU) ──
+         getSelectedWhItems=getSelectedWhItems,
+         getWhOn=getWhOn,
+         setWhOnOff=setWhOnOff,
+         setWhCallback=setWhCallback,
+         setWhStat=setWhStatFn,
+}
