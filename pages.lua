@@ -305,25 +305,328 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
     local function setDungeonHit(txt,col)  dungeonHitLbl.Text=txt or "0/s"; if col then smooth(dungeonHitLbl,{TextColor3=col},0.15):Play() end end
     local dungeonOnOffBtn,setDungeonOnOff,getDungeonOn,setDungeonCallback=mkOnOffBtn(dungeonSF,"Auto Dungeon",4)
 
-    -- SETTINGS (tanpa Minimize Bar blur)
-    local settingsSF=mkScrollPage(sideData["Settings"].page)
-    mkSection(settingsSF,"Appearance",1)
-    local baseW=root.AbsoluteSize.X; local baseH=root.AbsoluteSize.Y
-    mkSlider(settingsSF,"UI Scale",70,130,100,"%",function(v) root.Size=UDim2.new(0,baseW*(v/100),0,baseH*(v/100)) end,2)
-    mkSlider(settingsSF,"Border Opacity",0,100,90,"%",function(v) rootStroke.Transparency=1-(v/100) end,3)
-    mkSlider(settingsSF,"Corner Radius",6,24,14,"px",function(v) rootCorner.CornerRadius=UDim.new(0,v) end,4)
-    mkSection(settingsSF,"Font",5)
-    mkSlider(settingsSF,"Font Size",8,18,12,"px",function(v) lib.applyFontSize(v) end,6)
-    mkSection(settingsSF,"Accent Color",7)
-    mkDropdownV2(settingsSF,"Accent","*",Color3.fromRGB(118,68,255),{"Purple","Blue","Cyan","Green","Red"},"Purple",function(v) lib.applyAccent(v) end,8)
-    mkSection(settingsSF,"Particles",9)
-    mkToggle(settingsSF,"Enable Particles",true,function(v) UISettings.particles=v; for _,p in ipairs(particleList) do if p and p.Parent then p.Visible=v end end end,10)
-    mkSlider(settingsSF,"Jumlah Partikel",5,80,26,"",function(v) UISettings.particleCount=v; spawnParticles(v) end,11)
-    mkSection(settingsSF,"UI Background",12)
-    mkDropdownV2(settingsSF,"Mode BG Window","o",Color3.fromRGB(80,80,180),{"Solid","Transparent","Blur"},"Solid",function(v) applyUIBgMode(v) end,13)
-    -- Minimize Bar Blur DIHAPUS
-    mkSection(settingsSF,"Effects",14)
-    mkToggle(settingsSF,"Window Glow",true,function(v) UISettings.glow=v; lib.smooth(rootGlow,{ImageTransparency=v and 0.85 or 1},0.3):Play() end,15)
+    -- SETTINGS — dua subtab: Tampilan | Webhook
+local settingsMaster = sideData["Settings"].page
+local settingsSubs   = mkSubTabBar(settingsMaster, {"Tampilan", "Webhook"})
+
+-- ── SUBTAB: TAMPILAN (isi lama, tidak berubah) ───────────────
+local settingsSF = mkScrollPage(settingsSubs["Tampilan"])
+mkSection(settingsSF, "Appearance", 1)
+local baseW = root.AbsoluteSize.X; local baseH = root.AbsoluteSize.Y
+mkSlider(settingsSF, "UI Scale",      70, 130, 100, "%",
+    function(v) root.Size = UDim2.new(0, baseW*(v/100), 0, baseH*(v/100)) end, 2)
+mkSlider(settingsSF, "Border Opacity", 0, 100,  90, "%",
+    function(v) rootStroke.Transparency = 1-(v/100) end, 3)
+mkSlider(settingsSF, "Corner Radius",  6,  24,  14, "px",
+    function(v) rootCorner.CornerRadius = UDim.new(0, v) end, 4)
+mkSection(settingsSF, "Font", 5)
+mkSlider(settingsSF, "Font Size", 8, 18, 12, "px",
+    function(v) lib.applyFontSize(v) end, 6)
+mkSection(settingsSF, "Accent Color", 7)
+mkDropdownV2(settingsSF, "Accent", "*", Color3.fromRGB(118,68,255),
+    {"Purple","Blue","Cyan","Green","Red"}, "Purple",
+    function(v) lib.applyAccent(v) end, 8)
+mkSection(settingsSF, "Particles", 9)
+mkToggle(settingsSF, "Enable Particles", true,
+    function(v)
+        UISettings.particles = v
+        for _, p in ipairs(particleList) do if p and p.Parent then p.Visible = v end end
+    end, 10)
+mkSlider(settingsSF, "Jumlah Partikel", 5, 80, 26, "",
+    function(v) UISettings.particleCount = v; spawnParticles(v) end, 11)
+mkSection(settingsSF, "UI Background", 12)
+mkDropdownV2(settingsSF, "Mode BG Window", "o", Color3.fromRGB(80,80,180),
+    {"Solid","Transparent","Blur"}, "Solid",
+    function(v) applyUIBgMode(v) end, 13)
+mkSection(settingsSF, "Effects", 14)
+mkToggle(settingsSF, "Window Glow", true,
+    function(v)
+        UISettings.glow = v
+        lib.smooth(rootGlow, {ImageTransparency = v and 0.85 or 1}, 0.3):Play()
+    end, 15)
+
+-- ── SUBTAB: WEBHOOK ──────────────────────────────────────────
+local webhookSF = mkScrollPage(settingsSubs["Webhook"])
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
+-- Status & tombol aktif
+mkSection(webhookSF, "Kontrol", 1)
+local _, setWhStatFn = mkStatus(webhookSF, "Status", "Nonaktif", 2)
+local whOnOff, setWhOnOff, getWhOn, setWhCallback = mkOnOffBtn(webhookSF, "Kirim Webhook", 3)
+
+-- ── Item Picker ──────────────────────────────────────────────
+mkSection(webhookSF, "Filter Item", 4)
+
+-- Baris pencarian: [TextBox] [↺ Refresh] [✓ Confirm]
+local searchRow = Instance.new("Frame", webhookSF)
+searchRow.Size              = UDim2.new(1, 0, 0, 34)
+searchRow.BackgroundColor3  = Color3.fromRGB(14, 13, 22)
+searchRow.BorderSizePixel   = 0
+searchRow.LayoutOrder       = 5
+searchRow.ZIndex            = 5
+Instance.new("UICorner", searchRow).CornerRadius = UDim.new(0, 8)
+local srStroke = Instance.new("UIStroke", searchRow)
+srStroke.Color = T.border; srStroke.Transparency = 0.35; srStroke.Thickness = 0.9
+
+local searchBox = Instance.new("TextBox", searchRow)
+searchBox.Size              = UDim2.new(1, -76, 1, -8)
+searchBox.Position          = UDim2.new(0, 10, 0, 4)
+searchBox.BackgroundTransparency = 1
+searchBox.Text              = ""
+searchBox.PlaceholderText   = "Cari item..."
+searchBox.TextColor3        = T.text
+searchBox.PlaceholderColor3 = T.textDim
+searchBox.Font              = Enum.Font.Gotham
+searchBox.TextSize          = 10
+searchBox.TextXAlignment    = Enum.TextXAlignment.Left
+searchBox.ClearTextOnFocus  = false
+searchBox.ZIndex            = 6
+
+local function mkSmallBtn(parent, xOff, bg, sym, col)
+    local b = Instance.new("TextButton", parent)
+    b.Size              = UDim2.new(0, 28, 0, 22)
+    b.Position          = UDim2.new(1, xOff, 0.5, 0)
+    b.AnchorPoint       = Vector2.new(0, 0.5)
+    b.BackgroundColor3  = bg
+    b.Text              = sym
+    b.TextColor3        = col or T.white
+    b.Font              = Enum.Font.GothamBold
+    b.TextSize          = 12
+    b.BorderSizePixel   = 0
+    b.ZIndex            = 7
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.MouseEnter:Connect(function() smooth(b, {BackgroundTransparency=0.22}, 0.08):Play() end)
+    b.MouseLeave:Connect(function() smooth(b, {BackgroundTransparency=0}, 0.08):Play() end)
+    return b
+end
+
+local refreshItemBtn = mkSmallBtn(searchRow, -66, Color3.fromRGB(28, 26, 46), "↺", T.textSub)
+local confirmItemBtn = mkSmallBtn(searchRow, -34, T.accentSoft, "✓", T.white)
+lib.regAccent("bgSoft", confirmItemBtn)
+
+-- Label jumlah item terpilih
+local selCountLbl = Instance.new("TextLabel", webhookSF)
+selCountLbl.Size                 = UDim2.new(1, -4, 0, 14)
+selCountLbl.BackgroundTransparency = 1
+selCountLbl.Text                 = "Belum ada item dipilih"
+selCountLbl.TextColor3           = T.textDim
+selCountLbl.Font                 = Enum.Font.Gotham
+selCountLbl.TextSize             = 9
+selCountLbl.TextXAlignment       = Enum.TextXAlignment.Right
+selCountLbl.LayoutOrder          = 6
+selCountLbl.ZIndex               = 5
+
+-- Daftar item — ScrollingFrame tinggi tetap agar tidak melar
+local itemListSF = Instance.new("ScrollingFrame", webhookSF)
+itemListSF.Size                  = UDim2.new(1, 0, 0, 164)
+itemListSF.BackgroundTransparency = 1
+itemListSF.BorderSizePixel       = 0
+itemListSF.ScrollBarThickness    = 2
+itemListSF.ScrollBarImageColor3  = T.accent
+itemListSF.ScrollBarImageTransparency = 0.4
+itemListSF.CanvasSize            = UDim2.new(0, 0, 0, 0)
+itemListSF.AutomaticCanvasSize   = Enum.AutomaticSize.Y
+itemListSF.ZIndex                = 3
+itemListSF.ClipsDescendants      = true
+itemListSF.LayoutOrder           = 7
+lib.regAccent("scrollbar", itemListSF)
+local ilL = Instance.new("UIListLayout", itemListSF)
+ilL.Padding = UDim.new(0, 3); ilL.SortOrder = Enum.SortOrder.LayoutOrder
+local ilP = Instance.new("UIPadding", itemListSF)
+ilP.PaddingTop    = UDim.new(0, 3); ilP.PaddingBottom = UDim.new(0, 4)
+ilP.PaddingLeft   = UDim.new(0, 2); ilP.PaddingRight  = UDim.new(0, 2)
+
+-- ── State item picker ────────────────────────────────────────
+local selectedWhItems = {}   -- { [itemName] = true/false }
+local activeItemCards = {}
+local cachedItemNames = {}
+
+local function loadStorageNames()
+    local names = {}
+    local ok, storage = pcall(function()
+        return LocalPlayer.PlayerGui
+            .InventoryPanelUI.MainFrame.Frame.Content
+            .Holder.StorageHolder.Storage
+    end)
+    if not ok or not storage then return names end
+    for _, child in ipairs(storage:GetChildren()) do
+        local name = child.Name:match("^Item_(.+)$")
+        if name then table.insert(names, name) end
+    end
+    table.sort(names)
+    return names
+end
+
+local function updateSelCountLbl()
+    local n = 0
+    for _, v in pairs(selectedWhItems) do if v then n = n + 1 end end
+    if n > 0 then
+        selCountLbl.Text = n .. " item dipilih"
+        smooth(selCountLbl, {TextColor3 = T.accentGlow}, 0.15):Play()
+    else
+        selCountLbl.Text = "Belum ada item dipilih"
+        smooth(selCountLbl, {TextColor3 = T.textDim}, 0.15):Play()
+    end
+end
+
+local function rebuildItemList(filter)
+    -- Hapus kartu lama
+    for _, c in ipairs(activeItemCards) do pcall(function() c:Destroy() end) end
+    activeItemCards = {}
+
+    -- Muat nama jika belum ada cache
+    if #cachedItemNames == 0 then
+        cachedItemNames = loadStorageNames()
+    end
+
+    local filterLow = (filter or ""):lower()
+    local order     = 0
+
+    for _, itemName in ipairs(cachedItemNames) do
+        if filterLow == "" or itemName:lower():find(filterLow, 1, true) then
+            order = order + 1
+            local isSel = selectedWhItems[itemName] == true
+
+            -- Kartu item
+            local card = Instance.new("Frame", itemListSF)
+            card.Size             = UDim2.new(1, -2, 0, 26)
+            card.BackgroundColor3 = isSel and Color3.fromRGB(20, 15, 38)
+                                           or Color3.fromRGB(14, 13, 22)
+            card.BorderSizePixel  = 0
+            card.LayoutOrder      = order
+            card.ZIndex           = 5
+            Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
+
+            local cs = Instance.new("UIStroke", card)
+            cs.Color       = isSel and T.accentGlow or T.border
+            cs.Transparency = isSel and 0.10 or 0.55
+            cs.Thickness   = isSel and 1.1 or 0.7
+
+            local dot = Instance.new("Frame", card)
+            dot.Size            = UDim2.new(0, 4, 0, 4)
+            dot.Position        = UDim2.new(0, 7, 0.5, 0)
+            dot.AnchorPoint     = Vector2.new(0, 0.5)
+            dot.BackgroundColor3 = isSel and T.green or T.textDim
+            dot.BorderSizePixel = 0
+            Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+
+            local nameL = Instance.new("TextLabel", card)
+            nameL.Size              = UDim2.new(1, -36, 1, 0)
+            nameL.Position          = UDim2.new(0, 16, 0, 0)
+            nameL.BackgroundTransparency = 1
+            nameL.Text              = itemName
+            nameL.TextColor3        = isSel and T.white or T.textSub
+            nameL.Font              = isSel and Enum.Font.GothamBold or Enum.Font.Gotham
+            nameL.TextSize          = 9
+            nameL.TextXAlignment    = Enum.TextXAlignment.Left
+            nameL.ZIndex            = 6
+
+            local chk = Instance.new("TextLabel", card)
+            chk.Size              = UDim2.new(0, 18, 1, 0)
+            chk.Position          = UDim2.new(1, -20, 0, 0)
+            chk.BackgroundTransparency = 1
+            chk.Text              = isSel and "✓" or ""
+            chk.TextColor3        = T.green
+            chk.Font              = Enum.Font.GothamBold
+            chk.TextSize          = 11
+            chk.ZIndex            = 7
+
+            local hit = Instance.new("TextButton", card)
+            hit.Size              = UDim2.new(1, 0, 1, 0)
+            hit.BackgroundTransparency = 1
+            hit.Text              = ""
+            hit.ZIndex            = 8
+
+            -- Capture variabel lokal untuk closure
+            local ci    = itemName
+            local ccard = card; local ccs = cs
+            local cdot  = dot;  local cname = nameL; local cchk = chk
+
+            hit.MouseEnter:Connect(function()
+                if not selectedWhItems[ci] then
+                    smooth(ccard, {BackgroundColor3 = Color3.fromRGB(18, 17, 30)}, 0.08):Play()
+                end
+            end)
+            hit.MouseLeave:Connect(function()
+                if not selectedWhItems[ci] then
+                    smooth(ccard, {BackgroundColor3 = Color3.fromRGB(14, 13, 22)}, 0.08):Play()
+                end
+            end)
+            hit.MouseButton1Click:Connect(function()
+                selectedWhItems[ci] = not selectedWhItems[ci]
+                local on = selectedWhItems[ci] == true
+                ripple(ccard, ccard.AbsoluteSize.X*0.5, ccard.AbsoluteSize.Y*0.5, T.accent)
+                smooth(ccard, {BackgroundColor3 = on and Color3.fromRGB(20,15,38)
+                                               or Color3.fromRGB(14,13,22)}, 0.15):Play()
+                smooth(ccs,   {Color = on and T.accentGlow or T.border,
+                                Transparency = on and 0.10 or 0.55}, 0.15):Play()
+                smooth(cdot,  {BackgroundColor3 = on and T.green or T.textDim}, 0.15):Play()
+                smooth(cname, {TextColor3 = on and T.white or T.textSub}, 0.15):Play()
+                cname.Font = on and Enum.Font.GothamBold or Enum.Font.Gotham
+                cchk.Text  = on and "✓" or ""
+                updateSelCountLbl()
+            end)
+
+            table.insert(activeItemCards, card)
+        end
+    end
+
+    -- Placeholder jika tidak ada hasil
+    if order == 0 then
+        local el = Instance.new("TextLabel", itemListSF)
+        el.Size              = UDim2.new(1, -2, 0, 26)
+        el.BackgroundTransparency = 1
+        el.LayoutOrder       = 1
+        el.Text              = #cachedItemNames == 0
+                               and "Storage tidak ditemukan (buka Inventory dulu)"
+                               or  "Tidak ada item cocok"
+        el.TextColor3        = T.textDim
+        el.Font              = Enum.Font.Gotham
+        el.TextSize          = 9
+        el.TextXAlignment    = Enum.TextXAlignment.Center
+        table.insert(activeItemCards, el)
+    end
+end
+
+-- ── Event handler ────────────────────────────────────────────
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+    rebuildItemList(searchBox.Text)
+end)
+searchBox.Focused:Connect(function()
+    smooth(srStroke, {Color = T.accentGlow, Transparency = 0.0}, 0.15):Play()
+end)
+searchBox.FocusLost:Connect(function()
+    smooth(srStroke, {Color = T.border, Transparency = 0.35}, 0.15):Play()
+end)
+
+refreshItemBtn.MouseButton1Click:Connect(function()
+    ripple(refreshItemBtn, refreshItemBtn.AbsoluteSize.X*0.5, refreshItemBtn.AbsoluteSize.Y*0.5, T.accent)
+    cachedItemNames = loadStorageNames()  -- paksa reload dari Storage
+    rebuildItemList(searchBox.Text)
+end)
+
+confirmItemBtn.MouseButton1Click:Connect(function()
+    ripple(confirmItemBtn, confirmItemBtn.AbsoluteSize.X*0.5, confirmItemBtn.AbsoluteSize.Y*0.5, T.green)
+    local n = 0
+    for _, v in pairs(selectedWhItems) do if v then n = n + 1 end end
+    setWhStatFn(
+        n > 0 and (n.." item dikunci untuk dipantau") or "Belum ada item dipilih",
+        n > 0 and T.green or T.amber
+    )
+end)
+
+-- Muat daftar item pertama kali
+rebuildItemList("")
+
+-- Fungsi untuk diakses modul lain
+local function getSelectedWhItems()
+    local list = {}
+    for name, v in pairs(selectedWhItems) do
+        if v then table.insert(list, name) end
+    end
+    table.sort(list)
+    return list
+end
 
     return {
         getIsland=getIsland, getFarmMode=getFarmMode,
