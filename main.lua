@@ -512,5 +512,10 @@ if not ok2 then
     error("[YiDaMuSake] logic.lua gagal start: "..tostring(err2))
 end
 
+local startWebhook = load("webhook.lua")
+local ok3, err3 = pcall(startWebhook, refs, T, gui)
+if not ok3 then
+    warn("[YiDaMuSake] webhook.lua gagal start: " .. tostring(err3))
+end
 _G.YiUI = refs
 print("[YiDaMuSake] v8.2 loaded! Parent: "..gui.Parent.Name)
