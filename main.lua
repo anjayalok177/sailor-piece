@@ -114,7 +114,10 @@ local slL=Instance.new("UIListLayout",sideList); slL.Padding=UDim.new(0,4); slL.
 local slP=Instance.new("UIPadding",sideList); slP.PaddingLeft=UDim.new(0,6); slP.PaddingRight=UDim.new(0,6)
 local contentArea=Instance.new("Frame",inner); contentArea.Size=UDim2.new(1,-SIDEBAR_W-1,1,-TOPBAR_H-1); contentArea.Position=UDim2.new(0,SIDEBAR_W+1,0,TOPBAR_H+1); contentArea.BackgroundTransparency=1; contentArea.ZIndex=3
 
-local MAIN_TABS={{name="Info",sym="i",tip="Info"},{name="Main",sym="M",tip="Main"},{name="Settings",sym="S",tip="Settings"}}
+local MAIN_TABS = {
+    {name="Info", sym="ⓘ", tip="Info"}, {name="Main", sym="⌂", tip="Main"},
+    {name="Menu", sym="☰", tip="Menu"}, {name="Settings", sym="⚙︎", tip="Settings"},
+}
 local sideData={}
 local function switchMainTab(name) for _,d in pairs(sideData) do local on=(d.name==name); lib.smooth(d.iconBg,{BackgroundTransparency=on and 0 or 1},0.20):Play(); lib.smooth(d.iconL,{TextColor3=on and T.white or T.textDim},0.20):Play(); d.bar.Visible=on; d.page.Visible=on end end
 for i,tab in ipairs(MAIN_TABS) do
