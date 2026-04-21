@@ -2,9 +2,21 @@ local TELEPORT_LOCATIONS={"Starter","Jungle","Desert","Snow","Sailor","Shibuya",
 local FARM_ISLANDS={"Starter Island","Jungle Island","Desert Island","Snow Island","Shibuya","Hollow","Shinjuku Island#1","Shinjuku Island#2","Slime","Academy","Judgement","Soul Dominion","Ninja","Lawless"}
 local KNOWN_BOSSES={"AizenBoss","AlucardBoss","JinwooBoss","SukunaBoss","YujiBoss","GojoBoss","KnightBoss","YamatoBoss","StrongestShinobiBoss"}
 
+local GUI_LIST={
+    {name="Enchant UI",      path="EnchantUI"},
+    {name="Tower Merchant",  path="InfiniteTowerMerchantUI"},
+    {name="Power Reroll",    path="PowerRerollUI"},
+    {name="Reroll Stats",    path="RerollStatsUI"},
+    {name="Spec Passive",    path="SpecPassiveUI"},
+    {name="Trait Reroll",    path="TraitRerollUI"},
+    {name="Blessing",        path="BlessingUI"},
+}
+
 local function findTimerTextLabel(container)
     for _,desc in ipairs(container:GetDescendants()) do
-        if desc:IsA("TextLabel") then local txt=desc.Text or ""; if txt:match("^%d+:%d%d$") or txt:match("^%d+:%d%d:%d%d$") then return desc end end
+        if desc:IsA("TextLabel") then local txt=desc.Text or ""
+            if txt:match("^%d+:%d%d$") or txt:match("^%d+:%d%d:%d%d$") then return desc end
+        end
     end; return nil
 end
 local function parseTimerSecs(text)
@@ -18,32 +30,80 @@ local function makeNotifier(gui,T,TweenService)
         pcall(function()
             local snd=Instance.new("Sound"); snd.SoundId="rbxassetid://81906781454850"
             snd.Volume=0.8; snd.Parent=game:GetService("SoundService")
-            game:GetService("SoundService"):PlayLocalSound(snd); game:GetService("Debris"):AddItem(snd,6)
+            game:GetService("SoundService"):PlayLocalSound(snd)
+            game:GetService("Debris"):AddItem(snd,6)
         end)
-        local W=280; local notif=Instance.new("Frame",gui); notif.Size=UDim2.new(0,W,0,58)
-        notif.Position=UDim2.new(1,10,0,10); notif.BackgroundColor3=Color3.fromRGB(12,11,20); notif.BorderSizePixel=0; notif.ZIndex=600
+        local W=280; local notif=Instance.new("Frame",gui)
+        notif.Size=UDim2.new(0,W,0,58); notif.Position=UDim2.new(1,10,0,10)
+        notif.BackgroundColor3=Color3.fromRGB(12,11,20); notif.BorderSizePixel=0; notif.ZIndex=600
         Instance.new("UICorner",notif).CornerRadius=UDim.new(0,12)
         local ns=Instance.new("UIStroke",notif); ns.Color=col or T.green; ns.Thickness=1.4; ns.Transparency=0.1
-        local bar=Instance.new("Frame",notif); bar.Size=UDim2.new(0,3,1,-14); bar.Position=UDim2.new(0,8,0,7); bar.BackgroundColor3=col or T.green; bar.BorderSizePixel=0; Instance.new("UICorner",bar).CornerRadius=UDim.new(1,0)
-        local tl=Instance.new("TextLabel",notif); tl.Size=UDim2.new(1,-28,0,22); tl.Position=UDim2.new(0,20,0,8); tl.BackgroundTransparency=1; tl.Text=title; tl.TextColor3=T.white; tl.Font=Enum.Font.GothamBold; tl.TextSize=13; tl.TextXAlignment=Enum.TextXAlignment.Left; tl.ZIndex=601
-        local sl=Instance.new("TextLabel",notif); sl.Size=UDim2.new(1,-28,0,14); sl.Position=UDim2.new(0,20,0,34); sl.BackgroundTransparency=1; sl.Text=subtitle or ""; sl.TextColor3=T.textSub; sl.Font=Enum.Font.Gotham; sl.TextSize=10; sl.TextXAlignment=Enum.TextXAlignment.Left; sl.ZIndex=601
+        local bar=Instance.new("Frame",notif); bar.Size=UDim2.new(0,3,1,-14); bar.Position=UDim2.new(0,8,0,7)
+        bar.BackgroundColor3=col or T.green; bar.BorderSizePixel=0; Instance.new("UICorner",bar).CornerRadius=UDim.new(1,0)
+        local tl=Instance.new("TextLabel",notif); tl.Size=UDim2.new(1,-28,0,22); tl.Position=UDim2.new(0,20,0,8)
+        tl.BackgroundTransparency=1; tl.Text=title; tl.TextColor3=T.white; tl.Font=Enum.Font.GothamBold
+        tl.TextSize=13; tl.TextXAlignment=Enum.TextXAlignment.Left; tl.ZIndex=601
+        local sl=Instance.new("TextLabel",notif); sl.Size=UDim2.new(1,-28,0,14); sl.Position=UDim2.new(0,20,0,34)
+        sl.BackgroundTransparency=1; sl.Text=subtitle or ""; sl.TextColor3=T.textSub
+        sl.Font=Enum.Font.Gotham; sl.TextSize=10; sl.TextXAlignment=Enum.TextXAlignment.Left; sl.ZIndex=601
         TweenService:Create(notif,TweenInfo.new(0.36,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Position=UDim2.new(1,-W-10,0,10)}):Play()
-        task.delay(4.5,function() if notif and notif.Parent then TweenService:Create(notif,TweenInfo.new(0.26,Enum.EasingStyle.Quint),{Position=UDim2.new(1,10,0,10)}):Play(); task.wait(0.3); pcall(function() notif:Destroy() end) end end)
+        task.delay(4.5,function()
+            if notif and notif.Parent then
+                TweenService:Create(notif,TweenInfo.new(0.26,Enum.EasingStyle.Quint),{Position=UDim2.new(1,10,0,10)}):Play()
+                task.wait(0.3); pcall(function() notif:Destroy() end)
+            end
+        end)
     end
 end
 
 return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow,particleList,spawnParticles,applyUIBgMode,applyMiniBgMode,gui)
     local T=lib.T; local UISettings=lib.UISettings; local smooth=lib.smooth; local ripple=lib.ripple
     local TweenService=game:GetService("TweenService")
-    local mkScrollPage=lib.mkScrollPage; local mkTwoColLayout=lib.mkTwoColLayout; local mkGroupBox=lib.mkGroupBox; local mkSectionLabel=lib.mkSectionLabel
-    local mkSection=lib.mkSection; local mkStatus=lib.mkStatus; local mkSlider=lib.mkSlider; local mkToggle=lib.mkToggle
-    local mkOnOffBtn=lib.mkOnOffBtn; local mkDropdownV2=lib.mkDropdownV2; local mkSubTabBar=lib.mkSubTabBar; local mkCard=lib.mkCard
+    local mkScrollPage=lib.mkScrollPage; local mkTwoColLayout=lib.mkTwoColLayout
+    local mkGroupBox=lib.mkGroupBox; local mkSectionLabel=lib.mkSectionLabel
+    local mkSection=lib.mkSection; local mkStatus=lib.mkStatus
+    local mkSlider=lib.mkSlider; local mkToggle=lib.mkToggle
+    local mkOnOffBtn=lib.mkOnOffBtn; local mkDropdownV2=lib.mkDropdownV2
+    local mkSubTabBar=lib.mkSubTabBar; local mkCard=lib.mkCard
     local showNotif=makeNotifier(gui,T,TweenService)
+    local LocalPlayer=game:GetService("Players").LocalPlayer
 
-    -- INFO
-    local infoSF=mkScrollPage(sideData["Info"].page); mkSection(infoSF,"Boss Countdown",1)
-    local irBtn=Instance.new("TextButton",infoSF); irBtn.Size=UDim2.new(1,0,0,30); irBtn.BackgroundColor3=Color3.fromRGB(20,18,34); irBtn.Text="Refresh Timer"; irBtn.TextColor3=T.textSub; irBtn.Font=Enum.Font.GothamBold; irBtn.TextSize=11; irBtn.BorderSizePixel=0; irBtn.LayoutOrder=2; irBtn.ZIndex=6; Instance.new("UICorner",irBtn).CornerRadius=UDim.new(0,8); Instance.new("UIStroke",irBtn).Color=T.borderBright
-    local timerContainer=Instance.new("Frame",infoSF); timerContainer.BackgroundTransparency=1; timerContainer.Size=UDim2.new(1,0,0,0); timerContainer.AutomaticSize=Enum.AutomaticSize.Y; timerContainer.BorderSizePixel=0; timerContainer.LayoutOrder=3
+    -- Helper buat card aksi generik
+    local function mkActionCard(parent,label,btnText,btnColor,order,onClick)
+        local card=Instance.new("Frame",parent); card.Size=UDim2.new(1,0,0,38)
+        card.BackgroundColor3=Color3.fromRGB(14,13,22); card.BorderSizePixel=0
+        card.LayoutOrder=order; card.ZIndex=5; Instance.new("UICorner",card).CornerRadius=UDim.new(0,9)
+        local cs=Instance.new("UIStroke",card); cs.Color=T.border; cs.Transparency=0.45; cs.Thickness=0.8
+        local dot=Instance.new("Frame",card); dot.Size=UDim2.new(0,4,0,4); dot.Position=UDim2.new(0,8,0.5,0)
+        dot.AnchorPoint=Vector2.new(0,0.5); dot.BackgroundColor3=T.accentDim; dot.BorderSizePixel=0
+        Instance.new("UICorner",dot).CornerRadius=UDim.new(1,0)
+        local nameL=Instance.new("TextLabel",card); nameL.Size=UDim2.new(1,-72,1,0); nameL.Position=UDim2.new(0,17,0,0)
+        nameL.BackgroundTransparency=1; nameL.Text=label; nameL.TextColor3=T.text
+        nameL.Font=Enum.Font.GothamBold; nameL.TextSize=10; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
+        local btn=Instance.new("TextButton",card); btn.Size=UDim2.new(0,52,0,22); btn.Position=UDim2.new(1,-56,0.5,0)
+        btn.AnchorPoint=Vector2.new(0,0.5); btn.BackgroundColor3=btnColor or T.accentSoft
+        btn.Text=btnText; btn.TextColor3=T.white; btn.Font=Enum.Font.GothamBold; btn.TextSize=10
+        btn.BorderSizePixel=0; btn.ZIndex=7; Instance.new("UICorner",btn).CornerRadius=UDim.new(0,6)
+        card.MouseEnter:Connect(function() smooth(card,{BackgroundColor3=Color3.fromRGB(18,17,30)},0.08):Play(); smooth(cs,{Color=T.accentGlow,Transparency=0.2},0.08):Play(); smooth(dot,{BackgroundColor3=T.accentGlow},0.08):Play() end)
+        card.MouseLeave:Connect(function() smooth(card,{BackgroundColor3=Color3.fromRGB(14,13,22)},0.08):Play(); smooth(cs,{Color=T.border,Transparency=0.45},0.08):Play(); smooth(dot,{BackgroundColor3=T.accentDim},0.08):Play() end)
+        btn.MouseButton1Down:Connect(function() smooth(btn,{Size=UDim2.new(0,46,0,18)},0.07):Play() end)
+        btn.MouseButton1Up:Connect(function() smooth(btn,{Size=UDim2.new(0,52,0,22)},0.1):Play() end)
+        btn.MouseButton1Click:Connect(function() ripple(btn,btn.AbsoluteSize.X*0.5,btn.AbsoluteSize.Y*0.5,T.white); if onClick then onClick() end end)
+        return card,btn,nameL
+    end
+
+    -- ═══════════════════════════════════════════
+    -- INFO PAGE
+    -- ═══════════════════════════════════════════
+    local infoSF=mkScrollPage(sideData["Info"].page)
+    mkSection(infoSF,"Boss Countdown",1)
+    local irBtn=Instance.new("TextButton",infoSF); irBtn.Size=UDim2.new(1,0,0,30)
+    irBtn.BackgroundColor3=Color3.fromRGB(20,18,34); irBtn.Text="Refresh Timer"; irBtn.TextColor3=T.textSub
+    irBtn.Font=Enum.Font.GothamBold; irBtn.TextSize=11; irBtn.BorderSizePixel=0; irBtn.LayoutOrder=2; irBtn.ZIndex=6
+    Instance.new("UICorner",irBtn).CornerRadius=UDim.new(0,8); Instance.new("UIStroke",irBtn).Color=T.borderBright
+    local timerContainer=Instance.new("Frame",infoSF); timerContainer.BackgroundTransparency=1
+    timerContainer.Size=UDim2.new(1,0,0,0); timerContainer.AutomaticSize=Enum.AutomaticSize.Y
+    timerContainer.BorderSizePixel=0; timerContainer.LayoutOrder=3
     local tcL=Instance.new("UIListLayout",timerContainer); tcL.Padding=UDim.new(0,5); tcL.SortOrder=Enum.SortOrder.LayoutOrder
     local timerEntries={}
     local function buildTimerCards()
@@ -53,16 +113,28 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
             local bossName=child.Name:match("^TimedBossSpawn_(.+)_Container$")
             if bossName then
                 found=found+1; local timerLbl=findTimerTextLabel(child)
-                local card=Instance.new("Frame",timerContainer); card.Size=UDim2.new(1,0,0,50); card.BackgroundColor3=Color3.fromRGB(14,13,22); card.BorderSizePixel=0; card.LayoutOrder=found; card.ZIndex=5; Instance.new("UICorner",card).CornerRadius=UDim.new(0,10)
+                local card=Instance.new("Frame",timerContainer); card.Size=UDim2.new(1,0,0,50)
+                card.BackgroundColor3=Color3.fromRGB(14,13,22); card.BorderSizePixel=0; card.LayoutOrder=found; card.ZIndex=5
+                Instance.new("UICorner",card).CornerRadius=UDim.new(0,10)
                 local cs=Instance.new("UIStroke",card); cs.Color=T.border; cs.Transparency=0.25; cs.Thickness=0.8
-                local abar=Instance.new("Frame",card); abar.Size=UDim2.new(0,3,1,-14); abar.Position=UDim2.new(0,8,0,7); abar.BackgroundColor3=T.accentDim; abar.BorderSizePixel=0; Instance.new("UICorner",abar).CornerRadius=UDim.new(1,0)
-                local nameL=Instance.new("TextLabel",card); nameL.Size=UDim2.new(0.55,0,0,20); nameL.Position=UDim2.new(0,18,0,7); nameL.BackgroundTransparency=1; nameL.Text=bossName; nameL.TextColor3=T.text; nameL.Font=Enum.Font.GothamBold; nameL.TextSize=12; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
-                local dispTimer=Instance.new("TextLabel",card); dispTimer.Size=UDim2.new(0.45,-18,0,20); dispTimer.Position=UDim2.new(0.55,0,0,7); dispTimer.BackgroundTransparency=1; dispTimer.Text=timerLbl and timerLbl.Text or "..."; dispTimer.TextColor3=T.accentGlow; dispTimer.Font=Enum.Font.GothamBold; dispTimer.TextSize=13; dispTimer.TextXAlignment=Enum.TextXAlignment.Right; dispTimer.ZIndex=6
-                local dispStatus=Instance.new("TextLabel",card); dispStatus.Size=UDim2.new(1,-24,0,12); dispStatus.Position=UDim2.new(0,18,0,30); dispStatus.BackgroundTransparency=1; dispStatus.Text=timerLbl and "Timer aktif" or "Belum ditemukan"; dispStatus.TextColor3=timerLbl and T.textDim or T.amber; dispStatus.Font=Enum.Font.Gotham; dispStatus.TextSize=9; dispStatus.TextXAlignment=Enum.TextXAlignment.Left; dispStatus.ZIndex=6
+                local abar=Instance.new("Frame",card); abar.Size=UDim2.new(0,3,1,-14); abar.Position=UDim2.new(0,8,0,7)
+                abar.BackgroundColor3=T.accentDim; abar.BorderSizePixel=0; Instance.new("UICorner",abar).CornerRadius=UDim.new(1,0)
+                local nameL=Instance.new("TextLabel",card); nameL.Size=UDim2.new(0.55,0,0,20); nameL.Position=UDim2.new(0,18,0,7)
+                nameL.BackgroundTransparency=1; nameL.Text=bossName; nameL.TextColor3=T.text
+                nameL.Font=Enum.Font.GothamBold; nameL.TextSize=12; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
+                local dispTimer=Instance.new("TextLabel",card); dispTimer.Size=UDim2.new(0.45,-18,0,20); dispTimer.Position=UDim2.new(0.55,0,0,7)
+                dispTimer.BackgroundTransparency=1; dispTimer.Text=timerLbl and timerLbl.Text or "..."
+                dispTimer.TextColor3=T.accentGlow; dispTimer.Font=Enum.Font.GothamBold; dispTimer.TextSize=13; dispTimer.TextXAlignment=Enum.TextXAlignment.Right; dispTimer.ZIndex=6
+                local dispStatus=Instance.new("TextLabel",card); dispStatus.Size=UDim2.new(1,-24,0,12); dispStatus.Position=UDim2.new(0,18,0,30)
+                dispStatus.BackgroundTransparency=1; dispStatus.Text=timerLbl and "Timer aktif" or "Belum ditemukan"
+                dispStatus.TextColor3=timerLbl and T.textDim or T.amber; dispStatus.Font=Enum.Font.Gotham; dispStatus.TextSize=9; dispStatus.TextXAlignment=Enum.TextXAlignment.Left; dispStatus.ZIndex=6
                 table.insert(timerEntries,{container=child,bossName=bossName,timerLbl=timerLbl,dispTimer=dispTimer,dispStatus=dispStatus,cardStroke=cs,accentBar=abar,prevSecs=-1})
             end
         end
-        if found==0 then local el=Instance.new("TextLabel",timerContainer); el.Size=UDim2.new(1,0,0,30); el.BackgroundTransparency=1; el.Text="Tidak ada TimedBossSpawn"; el.TextColor3=T.textDim; el.Font=Enum.Font.Gotham; el.TextSize=10; el.LayoutOrder=1 end
+        if found==0 then
+            local el=Instance.new("TextLabel",timerContainer); el.Size=UDim2.new(1,0,0,30); el.BackgroundTransparency=1
+            el.Text="Tidak ada TimedBossSpawn"; el.TextColor3=T.textDim; el.Font=Enum.Font.Gotham; el.TextSize=10; el.LayoutOrder=1
+        end
     end
     buildTimerCards()
     irBtn.MouseButton1Click:Connect(function() ripple(irBtn,irBtn.AbsoluteSize.X*0.5,irBtn.AbsoluteSize.Y*0.5,T.accent); buildTimerCards() end)
@@ -70,9 +142,12 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
         while infoSF and infoSF.Parent do
             for _,e in ipairs(timerEntries) do pcall(function()
                 if not e.timerLbl or not e.timerLbl.Parent then
-                    local f=findTimerTextLabel(e.container); if f then e.timerLbl=f; e.dispStatus.Text="Timer OK"; e.dispStatus.TextColor3=T.green else e.dispTimer.Text="?"; e.dispStatus.Text="Belum ada timer"; e.dispStatus.TextColor3=T.amber; return end
+                    local f=findTimerTextLabel(e.container)
+                    if f then e.timerLbl=f; e.dispStatus.Text="Timer OK"; e.dispStatus.TextColor3=T.green
+                    else e.dispTimer.Text="?"; e.dispStatus.Text="Belum ada timer"; e.dispStatus.TextColor3=T.amber; return end
                 end
-                local txt=e.timerLbl.Text or ""; e.dispTimer.Text=(txt~="" and txt or "?"); local secs=parseTimerSecs(txt)
+                local txt=e.timerLbl.Text or ""; e.dispTimer.Text=(txt~="" and txt or "?")
+                local secs=parseTimerSecs(txt)
                 if secs==0 and e.prevSecs>0 then showNotif(e.bossName.." Spawned!","Boss telah muncul!",T.green) end
                 e.prevSecs=secs
                 if secs<0 then e.dispTimer.TextColor3=T.textDim; e.dispStatus.Text="Format: "..txt; smooth(e.cardStroke,{Color=T.border},0.3):Play(); smooth(e.accentBar,{BackgroundColor3=T.textDim},0.3):Play()
@@ -83,8 +158,11 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
         end
     end)
 
-    -- MAIN
-    local mainPage=sideData["Main"].page; local mainInner=Instance.new("Frame",mainPage); mainInner.Size=UDim2.new(1,-8,1,-8); mainInner.Position=UDim2.new(0,4,0,4); mainInner.BackgroundTransparency=1; mainInner.ZIndex=3
+    -- ═══════════════════════════════════════════
+    -- MAIN PAGE
+    -- ═══════════════════════════════════════════
+    local mainPage=sideData["Main"].page
+    local mainInner=Instance.new("Frame",mainPage); mainInner.Size=UDim2.new(1,-8,1,-8); mainInner.Position=UDim2.new(0,4,0,4); mainInner.BackgroundTransparency=1; mainInner.ZIndex=3
     local subPages=mkSubTabBar(mainInner,{"Farm","TP","Boss","Dungeon"})
 
     -- FARM
@@ -92,15 +170,17 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
     local farmGroup=mkGroupBox(leftF,1); mkSectionLabel(farmGroup,"Pulau & Mode",1)
     local _,getIsland=mkDropdownV2(farmGroup,"Pulau","*",Color3.fromRGB(78,46,200),FARM_ISLANDS,"Starter Island",nil,2)
     local _,getFarmMode=mkDropdownV2(farmGroup,"Mode","o",Color3.fromRGB(50,130,200),{"V1 - Semua Titik","V2 - Titik Tengah"},"V1 - Semua Titik",nil,3)
-    local _,setFarmOnOff,getFarmOn,setFarmCallback=mkOnOffBtn(farmGroup,"Auto Farm + Quest",4)
+    local farmOnOffBtn,setFarmOnOff,getFarmOn,setFarmCallback=mkOnOffBtn(farmGroup,"Auto Farm + Quest",4)
     local _,_,getAutoHitOn=mkToggle(farmGroup,"Kill Aura",false,nil,5)
     local modeGroup=mkGroupBox(leftF,2); mkSectionLabel(modeGroup,"Testing Mode",1)
     local _,_,getFaceDown=mkToggle(modeGroup,"Face Down",false,nil,2)
     local _,_,getSpinOn=mkToggle(modeGroup,"Auto Spin HRP",false,nil,3)
     local skillGroup=mkGroupBox(leftF,3); mkSectionLabel(skillGroup,"Auto Skill",1)
     local skillOn={Z=false,X=false,C=false,V=false}
-    mkToggle(skillGroup,"Z",false,function(v) skillOn.Z=v end,2); mkToggle(skillGroup,"X",false,function(v) skillOn.X=v end,3)
-    mkToggle(skillGroup,"C",false,function(v) skillOn.C=v end,4); mkToggle(skillGroup,"V",false,function(v) skillOn.V=v end,5)
+    mkToggle(skillGroup,"Z",false,function(v) skillOn.Z=v end,2)
+    mkToggle(skillGroup,"X",false,function(v) skillOn.X=v end,3)
+    mkToggle(skillGroup,"C",false,function(v) skillOn.C=v end,4)
+    mkToggle(skillGroup,"V",false,function(v) skillOn.V=v end,5)
     mkSection(rightF,"Adjust",1)
     local _,setHeight,getHeight=mkSlider(rightF,"Height",0,50,0," st",nil,2)
     local _,setSpeed,getSpeed=mkSlider(rightF,"Speed",20,500,150," st/s",nil,3)
@@ -111,7 +191,6 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
     local tpLeftF,tpRightF=mkTwoColLayout(subPages["TP"],T.border)
     local tpStatCard=Instance.new("Frame",tpLeftF); tpStatCard.Size=UDim2.new(1,0,0,24); tpStatCard.BackgroundTransparency=1; tpStatCard.BorderSizePixel=0; tpStatCard.LayoutOrder=0
     local tpStatLbl=Instance.new("TextLabel",tpStatCard); tpStatLbl.Size=UDim2.new(1,0,1,0); tpStatLbl.BackgroundTransparency=1; tpStatLbl.Text="Pilih lokasi"; tpStatLbl.TextColor3=T.textDim; tpStatLbl.Font=Enum.Font.Gotham; tpStatLbl.TextSize=10; tpStatLbl.TextXAlignment=Enum.TextXAlignment.Center
-    local tpStatR=Instance.new("Frame",tpRightF); tpStatR.Size=UDim2.new(1,0,0,24); tpStatR.BackgroundTransparency=1; tpStatR.BorderSizePixel=0; tpStatR.LayoutOrder=0
     local function setTPStat(txt,col) tpStatLbl.Text=txt or "--"; if col then smooth(tpStatLbl,{TextColor3=col},0.15):Play() end end
     local function makeTpCard(parent,loc,order)
         local card=Instance.new("Frame",parent); card.Size=UDim2.new(1,0,0,40); card.BackgroundColor3=T.card; card.BorderSizePixel=0; card.LayoutOrder=order; card.ZIndex=5; Instance.new("UICorner",card).CornerRadius=UDim.new(0,9)
@@ -122,9 +201,13 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
         Instance.new("UIGradient",goBtn).Color=ColorSequence.new{ColorSequenceKeypoint.new(0,Color3.fromRGB(50,188,135)),ColorSequenceKeypoint.new(1,Color3.fromRGB(28,138,92))}
         card.MouseEnter:Connect(function() smooth(card,{BackgroundColor3=T.cardHover},0.1):Play(); smooth(cs,{Color=T.accentGlow,Transparency=0.15},0.1):Play() end)
         card.MouseLeave:Connect(function() smooth(card,{BackgroundColor3=T.card},0.1):Play(); smooth(cs,{Color=T.border,Transparency=0.5},0.1):Play() end)
-        goBtn.MouseButton1Down:Connect(function() smooth(goBtn,{Size=UDim2.new(0,32,0,18)},0.07):Play() end); goBtn.MouseButton1Up:Connect(function() smooth(goBtn,{Size=UDim2.new(0,36,0,22)},0.12):Play() end)
-        local ci=loc; goBtn.MouseButton1Click:Connect(function() ripple(goBtn,goBtn.AbsoluteSize.X*0.5,goBtn.AbsoluteSize.Y*0.5,T.white); setTPStat("Teleporting to "..ci,T.amber); pcall(function() game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TeleportToPortal"):FireServer(ci) end); task.delay(1.5,function() setTPStat("Arrived: "..ci,T.green) end) end)
-        return card
+        goBtn.MouseButton1Down:Connect(function() smooth(goBtn,{Size=UDim2.new(0,32,0,18)},0.07):Play() end)
+        goBtn.MouseButton1Up:Connect(function() smooth(goBtn,{Size=UDim2.new(0,36,0,22)},0.12):Play() end)
+        local ci=loc; goBtn.MouseButton1Click:Connect(function()
+            ripple(goBtn,goBtn.AbsoluteSize.X*0.5,goBtn.AbsoluteSize.Y*0.5,T.white); setTPStat("Teleporting to "..ci,T.amber)
+            pcall(function() game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TeleportToPortal"):FireServer(ci) end)
+            task.delay(1.5,function() setTPStat("Arrived: "..ci,T.green) end)
+        end); return card
     end
     for i=1,8  do makeTpCard(tpLeftF,TELEPORT_LOCATIONS[i],i)   end
     for i=9,16 do makeTpCard(tpRightF,TELEPORT_LOCATIONS[i],i-8) end
@@ -132,22 +215,31 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
     -- BOSS
     local bossLeftF,bossRightF=mkTwoColLayout(subPages["Boss"],T.border)
     local killBossGroup=mkGroupBox(bossLeftF,1); mkSectionLabel(killBossGroup,"Kill Boss",1)
-    local _,setBossStatFn=mkStatus(killBossGroup,"Status","Idle",2); local _,setBossPhaseFn=mkStatus(killBossGroup,"Phase","--",3)
+    local _,setBossStatFn=mkStatus(killBossGroup,"Status","Idle",2)
+    local _,setBossPhaseFn=mkStatus(killBossGroup,"Phase","--",3)
     local bossOnOffBtn,setBossOnOff,getBossOn,setBossCallback=mkOnOffBtn(killBossGroup,"Kill Boss",4)
     local activeBossContainer=Instance.new("Frame",killBossGroup); activeBossContainer.BackgroundTransparency=1; activeBossContainer.Size=UDim2.new(1,0,0,0); activeBossContainer.AutomaticSize=Enum.AutomaticSize.Y; activeBossContainer.BorderSizePixel=0; activeBossContainer.LayoutOrder=5
     local abcL=Instance.new("UIListLayout",activeBossContainer); abcL.Padding=UDim.new(0,3); abcL.SortOrder=Enum.SortOrder.LayoutOrder
     local selectedBoss=nil; local activeBossCards={}
     local function getActiveBossNames()
         local active={}; local npcs=workspace:FindFirstChild("NPCs")
-        for _,bossName in ipairs(KNOWN_BOSSES) do local found=false; if npcs and npcs:FindFirstChild(bossName) then found=true elseif workspace:FindFirstChild(bossName,true) then found=true end; if found then table.insert(active,bossName) end end; return active
+        for _,bossName in ipairs(KNOWN_BOSSES) do
+            local found=false
+            if npcs and npcs:FindFirstChild(bossName) then found=true
+            elseif workspace:FindFirstChild(bossName,true) then found=true end
+            if found then table.insert(active,bossName) end
+        end; return active
     end
     local function rebuildActiveBossCards()
         for _,c in ipairs(activeBossCards) do pcall(function() c:Destroy() end) end; activeBossCards={}
         local active=getActiveBossNames()
-        if #active==0 then local el=Instance.new("TextLabel",activeBossContainer); el.Size=UDim2.new(1,0,0,22); el.LayoutOrder=1; el.BackgroundTransparency=1; el.Text="Tidak ada boss aktif"; el.TextColor3=T.textDim; el.Font=Enum.Font.Gotham; el.TextSize=9; el.TextXAlignment=Enum.TextXAlignment.Center; table.insert(activeBossCards,el); return end
+        if #active==0 then
+            local el=Instance.new("TextLabel",activeBossContainer); el.Size=UDim2.new(1,0,0,22); el.LayoutOrder=1; el.BackgroundTransparency=1; el.Text="Tidak ada boss aktif"; el.TextColor3=T.textDim; el.Font=Enum.Font.Gotham; el.TextSize=9; el.TextXAlignment=Enum.TextXAlignment.Center; table.insert(activeBossCards,el); return
+        end
         if selectedBoss then local still=false; for _,n in ipairs(active) do if n==selectedBoss then still=true; break end end; if not still then selectedBoss=nil end end
         for idx,bossName in ipairs(active) do
-            local isSel=(selectedBoss==bossName); local card=Instance.new("Frame",activeBossContainer); card.Size=UDim2.new(1,0,0,30); card.BackgroundColor3=isSel and Color3.fromRGB(28,18,52) or Color3.fromRGB(14,13,22); card.BorderSizePixel=0; card.LayoutOrder=idx; card.ZIndex=5; Instance.new("UICorner",card).CornerRadius=UDim.new(0,7)
+            local isSel=(selectedBoss==bossName)
+            local card=Instance.new("Frame",activeBossContainer); card.Size=UDim2.new(1,0,0,30); card.BackgroundColor3=isSel and Color3.fromRGB(28,18,52) or Color3.fromRGB(14,13,22); card.BorderSizePixel=0; card.LayoutOrder=idx; card.ZIndex=5; Instance.new("UICorner",card).CornerRadius=UDim.new(0,7)
             local cs=Instance.new("UIStroke",card); cs.Color=isSel and T.accentGlow or T.border; cs.Transparency=isSel and 0.05 or 0.5; cs.Thickness=isSel and 1.3 or 0.8
             local adot=Instance.new("Frame",card); adot.Size=UDim2.new(0,5,0,5); adot.Position=UDim2.new(0,7,0.5,0); adot.AnchorPoint=Vector2.new(0,0.5); adot.BackgroundColor3=T.green; adot.BorderSizePixel=0; Instance.new("UICorner",adot).CornerRadius=UDim.new(1,0)
             local nameL=Instance.new("TextLabel",card); nameL.Size=UDim2.new(1,-46,1,0); nameL.Position=UDim2.new(0,17,0,0); nameL.BackgroundTransparency=1; nameL.Text=bossName; nameL.TextColor3=isSel and T.white or T.textSub; nameL.Font=isSel and Enum.Font.GothamBold or Enum.Font.Gotham; nameL.TextSize=9; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
@@ -160,7 +252,8 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
     task.spawn(function() while killBossGroup and killBossGroup.Parent do task.wait(3); if killBossGroup and killBossGroup.Parent then rebuildActiveBossCards() end end end)
 
     local autoKillGroup=mkGroupBox(bossRightF,1); mkSectionLabel(autoKillGroup,"Auto Kill Boss",1)
-    local _,setAutoBossStatFn=mkStatus(autoKillGroup,"Status","Idle",2); local _,setAutoBossPhaseFn=mkStatus(autoKillGroup,"Phase","--",3)
+    local _,setAutoBossStatFn=mkStatus(autoKillGroup,"Status","Idle",2)
+    local _,setAutoBossPhaseFn=mkStatus(autoKillGroup,"Phase","--",3)
     local autoBossOnOff,setAutoBossOnOff,getAutoBossOn,setAutoBossCallback=mkOnOffBtn(autoKillGroup,"Auto Kill Boss",4)
     mkSectionLabel(autoKillGroup,"Pilih Boss (multi)",5)
     local autoBossSelected={}; for _,n in ipairs(KNOWN_BOSSES) do autoBossSelected[n]=false end
@@ -174,12 +267,15 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
         hit.MouseButton1Click:Connect(function()
             autoBossSelected[ci]=not autoBossSelected[ci]; local on=autoBossSelected[ci]
             ripple(card,card.AbsoluteSize.X*0.5,card.AbsoluteSize.Y*0.5,T.accent)
-            smooth(cdot,{BackgroundColor3=on and T.green or T.textDim},0.15):Play(); smooth(cname,{TextColor3=on and T.white or T.textSub},0.15):Play()
+            smooth(cdot,{BackgroundColor3=on and T.green or T.textDim},0.15):Play()
+            smooth(cname,{TextColor3=on and T.white or T.textSub},0.15):Play()
             smooth(css,{Color=on and T.accentGlow or T.border,Transparency=on and 0.1 or 0.45},0.15):Play()
             cchk.Text=on and "v" or ""; cname.Font=on and Enum.Font.GothamBold or Enum.Font.Gotham
         end)
     end
-    local function getAutoBossSelectedList() local list={}; for _,n in ipairs(KNOWN_BOSSES) do if autoBossSelected[n] then table.insert(list,n) end end; return list end
+    local function getAutoBossSelectedList()
+        local list={}; for _,n in ipairs(KNOWN_BOSSES) do if autoBossSelected[n] then table.insert(list,n) end end; return list
+    end
 
     -- DUNGEON
     local dungeonSF=mkScrollPage(subPages["Dungeon"])
@@ -194,25 +290,159 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
     local function setDungeonHit(txt,col) dungeonHitLbl.Text=txt or "0/s"; if col then smooth(dungeonHitLbl,{TextColor3=col},0.15):Play() end end
     local _,setDungeonOnOff,getDungeonOn,setDungeonCallback=mkOnOffBtn(dungeonSF,"Auto Dungeon",4)
 
-    -- SETTINGS: subtab Tampilan | Webhook
+    -- ═══════════════════════════════════════════
+    -- MENU PAGE (TAB BARU)
+    -- ═══════════════════════════════════════════
+    local menuSF=mkScrollPage(sideData["Menu"].page)
+
+    -- Open GUI List
+    mkSection(menuSF,"Open GUI",1)
+    local guiStatLbl=Instance.new("TextLabel",menuSF); guiStatLbl.Size=UDim2.new(1,0,0,14)
+    guiStatLbl.BackgroundTransparency=1; guiStatLbl.Text=""; guiStatLbl.TextColor3=T.textDim
+    guiStatLbl.Font=Enum.Font.Gotham; guiStatLbl.TextSize=9; guiStatLbl.TextXAlignment=Enum.TextXAlignment.Center
+    guiStatLbl.LayoutOrder=2; guiStatLbl.ZIndex=5
+
+    local function openGui(path)
+        local ok,err=pcall(function()
+            local pg=LocalPlayer:FindFirstChild("PlayerGui")
+            if not pg then error("PlayerGui tidak ditemukan") end
+            local ui=pg:FindFirstChild(path)
+            if not ui then error(path.." tidak ditemukan") end
+            -- Coba toggle Enabled
+            if ui:FindFirstChildOfClass("ScreenGui") then
+                ui.Enabled=not ui.Enabled
+            elseif ui:IsA("ScreenGui") then
+                ui.Enabled=not ui.Enabled
+            elseif ui:IsA("Frame") or ui:IsA("ImageLabel") then
+                ui.Visible=not ui.Visible
+            else
+                -- Cari ScreenGui atau Frame di dalamnya
+                local sg=ui:FindFirstChildOfClass("ScreenGui")
+                if sg then sg.Enabled=not sg.Enabled
+                else
+                    local fr=ui:FindFirstChildOfClass("Frame")
+                    if fr then fr.Visible=not fr.Visible
+                    else error("Tidak bisa toggle "..path) end
+                end
+            end
+        end)
+        if ok then
+            smooth(guiStatLbl,{TextColor3=T.green},0.15):Play()
+            guiStatLbl.Text="Berhasil toggle "..path
+        else
+            smooth(guiStatLbl,{TextColor3=T.red},0.15):Play()
+            guiStatLbl.Text="Gagal: "..tostring(err)
+        end
+        task.delay(3,function() if guiStatLbl and guiStatLbl.Parent then guiStatLbl.Text="" end end)
+    end
+
+    for i,g in ipairs(GUI_LIST) do
+        local ci=g.path
+        mkActionCard(menuSF,g.name,"Open",Color3.fromRGB(50,120,200),i+2,function()
+            openGui(ci)
+        end)
+    end
+
+    -- Boss UI Section
+    mkSection(menuSF,"Open Boss UI",#GUI_LIST+4)
+
+    local bossUiHint=Instance.new("TextLabel",menuSF); bossUiHint.Size=UDim2.new(1,0,0,14)
+    bossUiHint.BackgroundTransparency=1; bossUiHint.Text="Format: [NamaBoss]BossUI"
+    bossUiHint.TextColor3=T.textDim; bossUiHint.Font=Enum.Font.Gotham; bossUiHint.TextSize=9
+    bossUiHint.TextXAlignment=Enum.TextXAlignment.Center; bossUiHint.LayoutOrder=#GUI_LIST+5; bossUiHint.ZIndex=5
+
+    -- Input row
+    local bossUiRow=Instance.new("Frame",menuSF); bossUiRow.Size=UDim2.new(1,0,0,36)
+    bossUiRow.BackgroundColor3=Color3.fromRGB(14,13,22); bossUiRow.BorderSizePixel=0
+    bossUiRow.LayoutOrder=#GUI_LIST+6; bossUiRow.ZIndex=5
+    Instance.new("UICorner",bossUiRow).CornerRadius=UDim.new(0,9)
+    local buStroke=Instance.new("UIStroke",bossUiRow); buStroke.Color=T.border; buStroke.Transparency=0.35; buStroke.Thickness=0.9
+
+    local bossUiInput=Instance.new("TextBox",bossUiRow)
+    bossUiInput.Size=UDim2.new(1,-68,1,-8); bossUiInput.Position=UDim2.new(0,10,0,4)
+    bossUiInput.BackgroundTransparency=1; bossUiInput.Text=""; bossUiInput.PlaceholderText="Nama boss, contoh: TheWorld"
+    bossUiInput.TextColor3=T.text; bossUiInput.PlaceholderColor3=T.textDim
+    bossUiInput.Font=Enum.Font.Gotham; bossUiInput.TextSize=10; bossUiInput.TextXAlignment=Enum.TextXAlignment.Left
+    bossUiInput.ClearTextOnFocus=false; bossUiInput.ZIndex=7
+
+    local bossUiOpenBtn=Instance.new("TextButton",bossUiRow)
+    bossUiOpenBtn.Size=UDim2.new(0,54,0,24); bossUiOpenBtn.Position=UDim2.new(1,-58,0.5,0)
+    bossUiOpenBtn.AnchorPoint=Vector2.new(0,0.5); bossUiOpenBtn.BackgroundColor3=Color3.fromRGB(50,120,200)
+    bossUiOpenBtn.Text="Open"; bossUiOpenBtn.TextColor3=T.white; bossUiOpenBtn.Font=Enum.Font.GothamBold
+    bossUiOpenBtn.TextSize=10; bossUiOpenBtn.BorderSizePixel=0; bossUiOpenBtn.ZIndex=8
+    Instance.new("UICorner",bossUiOpenBtn).CornerRadius=UDim.new(0,6)
+
+    local bossUiStatLbl=Instance.new("TextLabel",menuSF); bossUiStatLbl.Size=UDim2.new(1,0,0,14)
+    bossUiStatLbl.BackgroundTransparency=1; bossUiStatLbl.Text=""; bossUiStatLbl.TextColor3=T.textDim
+    bossUiStatLbl.Font=Enum.Font.Gotham; bossUiStatLbl.TextSize=9; bossUiStatLbl.TextXAlignment=Enum.TextXAlignment.Center
+    bossUiStatLbl.LayoutOrder=#GUI_LIST+7; bossUiStatLbl.ZIndex=5
+
+    bossUiInput.Focused:Connect(function() smooth(buStroke,{Color=T.accentGlow,Transparency=0},0.15):Play() end)
+    bossUiInput.FocusLost:Connect(function() smooth(buStroke,{Color=T.border,Transparency=0.35},0.15):Play() end)
+    bossUiOpenBtn.MouseButton1Down:Connect(function() smooth(bossUiOpenBtn,{Size=UDim2.new(0,48,0,20)},0.07):Play() end)
+    bossUiOpenBtn.MouseButton1Up:Connect(function() smooth(bossUiOpenBtn,{Size=UDim2.new(0,54,0,24)},0.1):Play() end)
+    bossUiOpenBtn.MouseButton1Click:Connect(function()
+        ripple(bossUiOpenBtn,bossUiOpenBtn.AbsoluteSize.X*0.5,bossUiOpenBtn.AbsoluteSize.Y*0.5,T.white)
+        local rawName=bossUiInput.Text:match("^%s*(.-)%s*$") -- trim
+        if rawName=="" then
+            bossUiStatLbl.Text="Masukkan nama boss dulu!"; smooth(bossUiStatLbl,{TextColor3=T.amber},0.1):Play(); return
+        end
+        local path=rawName.."BossUI"
+        local ok,err=pcall(function()
+            local pg=LocalPlayer:FindFirstChild("PlayerGui")
+            if not pg then error("PlayerGui tidak ditemukan") end
+            local ui=pg:FindFirstChild(path)
+            if not ui then error("["..path.."] tidak ditemukan di PlayerGui") end
+            if ui:IsA("ScreenGui") then ui.Enabled=not ui.Enabled
+            else
+                local sg=ui:FindFirstChildOfClass("ScreenGui")
+                if sg then sg.Enabled=not sg.Enabled
+                else local fr=ui:FindFirstChildOfClass("Frame"); if fr then fr.Visible=not fr.Visible end end
+            end
+        end)
+        if ok then
+            bossUiStatLbl.Text="Berhasil toggle "..path; smooth(bossUiStatLbl,{TextColor3=T.green},0.1):Play()
+        else
+            bossUiStatLbl.Text=tostring(err); smooth(bossUiStatLbl,{TextColor3=T.red},0.1):Play()
+        end
+        task.delay(4,function() if bossUiStatLbl and bossUiStatLbl.Parent then bossUiStatLbl.Text="" end end)
+    end)
+
+    -- ═══════════════════════════════════════════
+    -- SETTINGS — subtab: Tampilan | Webhook
+    -- ═══════════════════════════════════════════
     local settingsMaster=sideData["Settings"].page
     local settingsSubs=mkSubTabBar(settingsMaster,{"Tampilan","Webhook"})
-
     local settingsSF=mkScrollPage(settingsSubs["Tampilan"])
     mkSection(settingsSF,"Appearance",1)
-    mkSlider(settingsSF,"UI Scale",70,130,100,"%",function(v) local bW=root.AbsoluteSize.X>0 and root.AbsoluteSize.X or 460; local bH=root.AbsoluteSize.Y>0 and root.AbsoluteSize.Y or 340; root.Size=UDim2.new(0,bW*(v/100),0,bH*(v/100)) end,2)
+    mkSlider(settingsSF,"UI Scale",70,130,100,"%",function(v)
+        local bW=root.AbsoluteSize.X>0 and root.AbsoluteSize.X or 460
+        local bH=root.AbsoluteSize.Y>0 and root.AbsoluteSize.Y or 340
+        root.Size=UDim2.new(0,bW*(v/100),0,bH*(v/100))
+    end,2)
     mkSlider(settingsSF,"Border Opacity",0,100,90,"%",function(v) rootStroke.Transparency=1-(v/100) end,3)
     mkSlider(settingsSF,"Corner Radius",6,24,14,"px",function(v) rootCorner.CornerRadius=UDim.new(0,v) end,4)
-    mkSection(settingsSF,"Font",5); mkSlider(settingsSF,"Font Size",8,18,12,"px",function(v) lib.applyFontSize(v) end,6)
-    mkSection(settingsSF,"Accent Color",7); mkDropdownV2(settingsSF,"Accent","*",Color3.fromRGB(118,68,255),{"Purple","Blue","Cyan","Green","Red"},"Purple",function(v) lib.applyAccent(v) end,8)
+    mkSection(settingsSF,"Font",5)
+    mkSlider(settingsSF,"Font Size",8,18,12,"px",function(v) lib.applyFontSize(v) end,6)
+    mkSection(settingsSF,"Accent Color",7)
+    mkDropdownV2(settingsSF,"Accent","*",Color3.fromRGB(118,68,255),{"Purple","Blue","Cyan","Green","Red"},"Purple",function(v) lib.applyAccent(v) end,8)
     mkSection(settingsSF,"Particles",9)
     mkToggle(settingsSF,"Enable Particles",true,function(v) UISettings.particles=v; for _,p in ipairs(particleList) do if p and p.Parent then p.Visible=v end end end,10)
     mkSlider(settingsSF,"Jumlah Partikel",5,80,26,"",function(v) UISettings.particleCount=v; spawnParticles(v) end,11)
-    mkSection(settingsSF,"UI Background",12); mkDropdownV2(settingsSF,"Mode BG Window","o",Color3.fromRGB(80,80,180),{"Solid","Transparent","Blur"},"Solid",function(v) applyUIBgMode(v) end,13)
-    mkSection(settingsSF,"Effects",14); mkToggle(settingsSF,"Window Glow",true,function(v) UISettings.glow=v; lib.smooth(rootGlow,{ImageTransparency=v and 0.85 or 1},0.3):Play() end,15)
 
+    -- Background UI: Solid | Transparan
+    mkSection(settingsSF,"Background Window",12)
+    mkDropdownV2(settingsSF,"Mode BG","o",Color3.fromRGB(80,80,180),{"Solid","Transparent","Blur"},"Solid",function(v) applyUIBgMode(v) end,13)
+
+    -- Background Minimize: Solid | Transparan
+    mkSection(settingsSF,"Background Minimize Bar",14)
+    mkDropdownV2(settingsSF,"Mode Mini BG","o",Color3.fromRGB(60,60,160),{"Solid","Transparent"},"Solid",function(v) applyMiniBgMode(v) end,15)
+
+    mkSection(settingsSF,"Effects",16)
+    mkToggle(settingsSF,"Window Glow",true,function(v) UISettings.glow=v; lib.smooth(rootGlow,{ImageTransparency=v and 0.85 or 1},0.3):Play() end,17)
+
+    -- WEBHOOK subtab
     local webhookSF=mkScrollPage(settingsSubs["Webhook"])
-    local LocalPlayer=game:GetService("Players").LocalPlayer
     mkSection(webhookSF,"Kontrol",1)
     local _,setWhStatFn=mkStatus(webhookSF,"Status","Nonaktif",2)
     local _,setWhOnOff,getWhOn,setWhCallback=mkOnOffBtn(webhookSF,"Kirim Webhook",3)
@@ -243,15 +473,16 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
                 local nameL=Instance.new("TextLabel",card); nameL.Size=UDim2.new(1,-36,1,0); nameL.Position=UDim2.new(0,16,0,0); nameL.BackgroundTransparency=1; nameL.Text=itemName; nameL.TextColor3=isSel and T.white or T.textSub; nameL.Font=isSel and Enum.Font.GothamBold or Enum.Font.Gotham; nameL.TextSize=9; nameL.TextXAlignment=Enum.TextXAlignment.Left; nameL.ZIndex=6
                 local chk=Instance.new("TextLabel",card); chk.Size=UDim2.new(0,18,1,0); chk.Position=UDim2.new(1,-20,0,0); chk.BackgroundTransparency=1; chk.Text=isSel and "v" or ""; chk.TextColor3=T.green; chk.Font=Enum.Font.GothamBold; chk.TextSize=11; chk.ZIndex=7
                 local hit=Instance.new("TextButton",card); hit.Size=UDim2.new(1,0,1,0); hit.BackgroundTransparency=1; hit.Text=""; hit.ZIndex=8
-                local ci=itemName; local ccard=card; local ccs=cs; local cdot=dot; local cname=nameL; local cchk=chk
-                hit.MouseEnter:Connect(function() if not selectedWhItems[ci] then smooth(ccard,{BackgroundColor3=Color3.fromRGB(18,17,30)},0.08):Play() end end)
-                hit.MouseLeave:Connect(function() if not selectedWhItems[ci] then smooth(ccard,{BackgroundColor3=Color3.fromRGB(14,13,22)},0.08):Play() end end)
+                local ci2=itemName; local ccard=card; local ccs=cs; local cdot=dot; local cname=nameL; local cchk=chk
+                hit.MouseEnter:Connect(function() if not selectedWhItems[ci2] then smooth(ccard,{BackgroundColor3=Color3.fromRGB(18,17,30)},0.08):Play() end end)
+                hit.MouseLeave:Connect(function() if not selectedWhItems[ci2] then smooth(ccard,{BackgroundColor3=Color3.fromRGB(14,13,22)},0.08):Play() end end)
                 hit.MouseButton1Click:Connect(function()
-                    selectedWhItems[ci]=not selectedWhItems[ci]; local on=selectedWhItems[ci]==true
+                    selectedWhItems[ci2]=not selectedWhItems[ci2]; local on=selectedWhItems[ci2]==true
                     ripple(ccard,ccard.AbsoluteSize.X*0.5,ccard.AbsoluteSize.Y*0.5,T.accent)
                     smooth(ccard,{BackgroundColor3=on and Color3.fromRGB(20,15,38) or Color3.fromRGB(14,13,22)},0.15):Play()
                     smooth(ccs,{Color=on and T.accentGlow or T.border,Transparency=on and 0.10 or 0.55},0.15):Play()
-                    smooth(cdot,{BackgroundColor3=on and T.green or T.textDim},0.15):Play(); smooth(cname,{TextColor3=on and T.white or T.textSub},0.15):Play()
+                    smooth(cdot,{BackgroundColor3=on and T.green or T.textDim},0.15):Play()
+                    smooth(cname,{TextColor3=on and T.white or T.textSub},0.15):Play()
                     cname.Font=on and Enum.Font.GothamBold or Enum.Font.Gotham; cchk.Text=on and "v" or ""; updateSelCountLbl()
                 end)
                 table.insert(activeItemCards,card)
@@ -285,7 +516,6 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
         setDungeonStat=setDungeonStat, setDungeonNPC=setDungeonNPC, setDungeonHit=setDungeonHit,
         setDungeonOnOff=setDungeonOnOff, getDungeonOn=getDungeonOn, setDungeonCallback=setDungeonCallback,
         getSelectedWhItems=getSelectedWhItems,
-        getWhOn=getWhOn, setWhOnOff=setWhOnOff,
-        setWhCallback=setWhCallback, setWhStat=setWhStatFn,
+        getWhOn=getWhOn, setWhOnOff=setWhOnOff, setWhCallback=setWhCallback, setWhStat=setWhStatFn,
     }
 end
