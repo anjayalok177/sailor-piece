@@ -295,8 +295,43 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
 -- ═══════════════════════════════════════════
 local menuSF = mkScrollPage(sideData["Menu"].page)
 
--- Core GUI opener — analisis semua layer
-local function tryOpenUI(path, statLbl)
+-- Ganti tryOpenUI dengan ini:
+local guiOpenState = {}  -- track state tiap GUI { [path] = true/false }
+
+local function getUICurrentState(path)
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return false end
+    local ui = pg:FindFirstChild(path)
+    if not ui then
+        -- case-insensitive fallback
+        local low = path:lower()
+        for _, c in ipairs(pg:GetChildren()) do
+            if c.Name:lower() == low then ui = c; break end
+        end
+    end
+    if not ui then return false end
+
+    -- Cek ScreenGui.Enabled
+    if ui:IsA("ScreenGui") then
+        if not ui.Enabled then return false end
+    end
+
+    -- Cek apakah ada GuiObject yang visible
+    for _, child in ipairs(ui:GetChildren()) do
+        if child:IsA("GuiObject") and child.Visible then return true end
+    end
+
+    -- Cek level 2
+    for _, child in ipairs(ui:GetChildren()) do
+        for _, grand in ipairs(child:GetChildren()) do
+            if grand:IsA("GuiObject") and grand.Visible then return true end
+        end
+    end
+
+    return false
+end
+
+local function tryToggleUI(path, statLbl, btnRef)
     local function setStatus(msg, col)
         if not statLbl or not statLbl.Parent then return end
         statLbl.Text = msg
@@ -311,11 +346,14 @@ local function tryOpenUI(path, statLbl)
         end)
     end
 
+    local currentlyOpen = getUICurrentState(path)
+    local wantOpen = not currentlyOpen  -- toggle
+
     local ok, err = pcall(function()
         local pg = LocalPlayer:FindFirstChild("PlayerGui")
         if not pg then error("PlayerGui tidak ditemukan") end
 
-        -- Cari UI, termasuk case-insensitive fallback
+        -- Cari UI
         local ui = pg:FindFirstChild(path)
         if not ui then
             local low = path:lower()
@@ -324,69 +362,75 @@ local function tryOpenUI(path, statLbl)
             end
         end
         if not ui then
-            -- Debug: list semua child PlayerGui untuk user
             local names = {}
             for _, c in ipairs(pg:GetChildren()) do table.insert(names, c.Name) end
-            error("["..path.."] tidak ditemukan.\nAda: "..table.concat(names,", "):sub(1,120))
+            error("["..path.."] tidak ditemukan.\nAda: "..table.concat(names,", "):sub(1,100))
         end
 
-        -- Layer 1: Jika ScreenGui, aktifkan
-        if ui:IsA("ScreenGui") then
-            ui.Enabled = true
-        end
-
-        -- Layer 2: Tampilkan SEMUA direct children GuiObject
-        local shownCount = 0
-        for _, child in ipairs(ui:GetChildren()) do
-            if child:IsA("GuiObject") then
-                pcall(function() child.Visible = true end)
-                shownCount = shownCount + 1
-            end
-        end
-
-        -- Layer 3: Jika direct children bukan GuiObject (mis. LocalScript),
-        -- cari GuiObject di level 2
-        if shownCount == 0 then
+        if wantOpen then
+            -- BUKA
+            if ui:IsA("ScreenGui") then ui.Enabled = true end
+            local shown = 0
             for _, child in ipairs(ui:GetChildren()) do
-                for _, grandchild in ipairs(child:GetChildren()) do
-                    if grandchild:IsA("GuiObject") then
-                        pcall(function() grandchild.Visible = true end)
-                        shownCount = shownCount + 1
+                if child:IsA("GuiObject") then child.Visible = true; shown = shown + 1 end
+            end
+            if shown == 0 then
+                for _, child in ipairs(ui:GetChildren()) do
+                    for _, grand in ipairs(child:GetChildren()) do
+                        if grand:IsA("GuiObject") then grand.Visible = true; shown = shown + 1 end
                     end
                 end
             end
-        end
-
-        -- Layer 4: Last resort — FindFirstChildWhichIsA recursive
-        if shownCount == 0 then
-            local f = ui:FindFirstChildWhichIsA("GuiObject", true)
-            if f then pcall(function() f.Visible = true end); shownCount = 1 end
-        end
-
-        -- Layer 5: Paksa re-show tiap frame selama 1 detik
-        -- (mengatasi game script yg langsung re-hide)
-        task.spawn(function()
-            for i = 1, 5 do
-                task.wait(0.2)
-                pcall(function()
-                    if ui:IsA("ScreenGui") then ui.Enabled = true end
-                    for _, child in ipairs(ui:GetChildren()) do
-                        if child:IsA("GuiObject") then child.Visible = true end
-                    end
-                end)
+            if shown == 0 then
+                local f = ui:FindFirstChildWhichIsA("GuiObject", true)
+                if f then f.Visible = true end
             end
-        end)
-
-        return shownCount
+            -- Keep-alive loop
+            task.spawn(function()
+                for i = 1, 5 do
+                    task.wait(0.2)
+                    if not guiOpenState[path] then break end  -- user sudah tutup, stop
+                    pcall(function()
+                        if ui:IsA("ScreenGui") then ui.Enabled = true end
+                        for _, child in ipairs(ui:GetChildren()) do
+                            if child:IsA("GuiObject") then child.Visible = true end
+                        end
+                    end)
+                end
+            end)
+        else
+            -- TUTUP
+            if ui:IsA("ScreenGui") then ui.Enabled = false end
+            for _, child in ipairs(ui:GetChildren()) do
+                if child:IsA("GuiObject") then child.Visible = false end
+            end
+            -- Level 2 juga
+            for _, child in ipairs(ui:GetChildren()) do
+                for _, grand in ipairs(child:GetChildren()) do
+                    if grand:IsA("GuiObject") then grand.Visible = false end
+                end
+            end
+        end
     end)
 
     if ok then
-        setStatus("Berhasil membuka "..path, T.green)
+        guiOpenState[path] = wantOpen
+        -- Update teks tombol
+        if btnRef and btnRef.Parent then
+            btnRef.Text = wantOpen and "Close" or "Open"
+            smooth(btnRef, {
+                BackgroundColor3 = wantOpen
+                    and Color3.fromRGB(180,50,50)   -- merah = Close
+                    or  Color3.fromRGB(40,100,200)  -- biru  = Open
+            }, 0.15):Play()
+        end
+        setStatus((wantOpen and "Dibuka: " or "Ditutup: ")..path, wantOpen and T.green or T.amber)
     else
         setStatus(tostring(err):sub(1,80), T.red)
     end
     return ok
 end
+
 
 -- Status label global untuk menu
 local menuStatLbl = Instance.new("TextLabel", menuSF)
@@ -452,11 +496,15 @@ local GUI_LIST = {
 mkSection(menuSF, "Open GUI", 2)
 for i, g in ipairs(GUI_LIST) do
     local ci = g.path
-    mkMenuCard(menuSF, g.name, "Open",
-        Color3.fromRGB(40,100,200), i+2,
-        function() tryOpenUI(ci, menuStatLbl) end
-    )
+    local card, btn = mkMenuCard(menuSF, g.name, "Open",
+        Color3.fromRGB(40,100,200), i+2, nil)  -- onClick = nil dulu
+    -- Override click dengan akses ke btn
+    btn.MouseButton1Click:Connect(function()
+        ripple(btn, btn.AbsoluteSize.X*0.5, btn.AbsoluteSize.Y*0.5, T.white)
+        tryToggleUI(ci, menuStatLbl, btn)
+    end)
 end
+
 
 -- ── Scan GUI: debug helper ─────────────────────
 local scanOrder = #GUI_LIST + 4
@@ -523,35 +571,40 @@ bossOpenBtn.MouseButton1Click:Connect(function()
         smooth(menuStatLbl,{TextColor3=T.amber},0.1):Play()
         return
     end
-    -- Coba beberapa format nama
+
+    -- Coba beberapa format
     local attempts = {
         rawName .. "BossUI",
-        rawName .. "Boss" .. "UI",
         rawName:sub(1,1):upper() .. rawName:sub(2) .. "BossUI",
     }
-    local success = false
-    for _, attempt in ipairs(attempts) do
-        if tryOpenUI(attempt, menuStatLbl) then
-            success = true; break
-        end
-    end
-    if not success then
-        -- Coba scan otomatis berdasarkan nama boss
-        local pg = LocalPlayer:FindFirstChild("PlayerGui")
-        if pg then
-            local low = rawName:lower()
-            for _, c in ipairs(pg:GetChildren()) do
-                if c.Name:lower():find(low,1,true) and c.Name:lower():find("boss",1,true) then
-                    tryOpenUI(c.Name, menuStatLbl); success = true; break
-                end
+
+    -- Coba scan partial juga
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if pg then
+        local low = rawName:lower()
+        for _, c in ipairs(pg:GetChildren()) do
+            local clow = c.Name:lower()
+            if clow:find(low,1,true) and clow:find("boss",1,true) then
+                -- Tambahkan nama exact ke attempts jika belum ada
+                local already = false
+                for _, a in ipairs(attempts) do if a==c.Name then already=true; break end end
+                if not already then table.insert(attempts, c.Name) end
             end
         end
-        if not success then
-            menuStatLbl.Text = "["..rawName.."BossUI] tidak ditemukan. Coba Scan dulu."
-            smooth(menuStatLbl,{TextColor3=T.red},0.1):Play()
-        end
+    end
+
+    local success = false
+    for _, attempt in ipairs(attempts) do
+        local ok2 = tryToggleUI(attempt, menuStatLbl, bossOpenBtn)
+        if ok2 then success = true; break end
+    end
+
+    if not success then
+        menuStatLbl.Text = "["..rawName.."BossUI] tidak ditemukan. Coba Scan."
+        smooth(menuStatLbl,{TextColor3=T.red},0.1):Play()
     end
 end)
+
     -- ═══════════════════════════════════════════
     -- SETTINGS — subtab: Tampilan | Webhook
     -- ═══════════════════════════════════════════
