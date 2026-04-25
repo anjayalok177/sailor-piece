@@ -34,7 +34,7 @@ return function(refs, T, gui)
     local function sendEmbed(payload)
         local body = HttpService:JSONEncode({
             username   = "Yi Da Mu Sake",
-            avatar_url = "https://i.imgur.com/AfFp7pu.png",
+            avatar_url = "https://imgur.com/a/VF9fEtD",
             embeds     = { payload },
         })
         local ok, err = pcall(function()
