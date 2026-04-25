@@ -291,123 +291,267 @@ return function(lib,sideData,contentArea,bgF,root,rootCorner,rootStroke,rootGlow
     local _,setDungeonOnOff,getDungeonOn,setDungeonCallback=mkOnOffBtn(dungeonSF,"Auto Dungeon",4)
 
     -- ═══════════════════════════════════════════
-    -- MENU PAGE (TAB BARU)
-    -- ═══════════════════════════════════════════
-    local menuSF=mkScrollPage(sideData["Menu"].page)
+-- MENU PAGE
+-- ═══════════════════════════════════════════
+local menuSF = mkScrollPage(sideData["Menu"].page)
 
-    -- Open GUI List
-    mkSection(menuSF,"Open GUI",1)
-    local guiStatLbl=Instance.new("TextLabel",menuSF); guiStatLbl.Size=UDim2.new(1,0,0,14)
-    guiStatLbl.BackgroundTransparency=1; guiStatLbl.Text=""; guiStatLbl.TextColor3=T.textDim
-    guiStatLbl.Font=Enum.Font.Gotham; guiStatLbl.TextSize=9; guiStatLbl.TextXAlignment=Enum.TextXAlignment.Center
-    guiStatLbl.LayoutOrder=2; guiStatLbl.ZIndex=5
+-- Core GUI opener — analisis semua layer
+local function tryOpenUI(path, statLbl)
+    local function setStatus(msg, col)
+        if not statLbl or not statLbl.Parent then return end
+        statLbl.Text = msg
+        smooth(statLbl, {TextColor3 = col or T.textDim}, 0.12):Play()
+        task.delay(4, function()
+            if statLbl and statLbl.Parent then
+                smooth(statLbl, {TextColor3 = T.textDim}, 0.15):Play()
+                task.delay(0.2, function()
+                    if statLbl and statLbl.Parent then statLbl.Text = "" end
+                end)
+            end
+        end)
+    end
 
-    local function openGui(path)
-        local ok,err=pcall(function()
-            local pg=LocalPlayer:FindFirstChild("PlayerGui")
-            if not pg then error("PlayerGui tidak ditemukan") end
-            local ui=pg:FindFirstChild(path)
-            if not ui then error(path.." tidak ditemukan") end
-            -- Coba toggle Enabled
-            if ui:FindFirstChildOfClass("ScreenGui") then
-                ui.Enabled=not ui.Enabled
-            elseif ui:IsA("ScreenGui") then
-                ui.Enabled=not ui.Enabled
-            elseif ui:IsA("Frame") or ui:IsA("ImageLabel") then
-                ui.Visible=not ui.Visible
-            else
-                -- Cari ScreenGui atau Frame di dalamnya
-                local sg=ui:FindFirstChildOfClass("ScreenGui")
-                if sg then sg.Enabled=not sg.Enabled
-                else
-                    local fr=ui:FindFirstChildOfClass("Frame")
-                    if fr then fr.Visible=not fr.Visible
-                    else error("Tidak bisa toggle "..path) end
+    local ok, err = pcall(function()
+        local pg = LocalPlayer:FindFirstChild("PlayerGui")
+        if not pg then error("PlayerGui tidak ditemukan") end
+
+        -- Cari UI, termasuk case-insensitive fallback
+        local ui = pg:FindFirstChild(path)
+        if not ui then
+            local low = path:lower()
+            for _, c in ipairs(pg:GetChildren()) do
+                if c.Name:lower() == low then ui = c; break end
+            end
+        end
+        if not ui then
+            -- Debug: list semua child PlayerGui untuk user
+            local names = {}
+            for _, c in ipairs(pg:GetChildren()) do table.insert(names, c.Name) end
+            error("["..path.."] tidak ditemukan.\nAda: "..table.concat(names,", "):sub(1,120))
+        end
+
+        -- Layer 1: Jika ScreenGui, aktifkan
+        if ui:IsA("ScreenGui") then
+            ui.Enabled = true
+        end
+
+        -- Layer 2: Tampilkan SEMUA direct children GuiObject
+        local shownCount = 0
+        for _, child in ipairs(ui:GetChildren()) do
+            if child:IsA("GuiObject") then
+                pcall(function() child.Visible = true end)
+                shownCount = shownCount + 1
+            end
+        end
+
+        -- Layer 3: Jika direct children bukan GuiObject (mis. LocalScript),
+        -- cari GuiObject di level 2
+        if shownCount == 0 then
+            for _, child in ipairs(ui:GetChildren()) do
+                for _, grandchild in ipairs(child:GetChildren()) do
+                    if grandchild:IsA("GuiObject") then
+                        pcall(function() grandchild.Visible = true end)
+                        shownCount = shownCount + 1
+                    end
                 end
             end
-        end)
-        if ok then
-            smooth(guiStatLbl,{TextColor3=T.green},0.15):Play()
-            guiStatLbl.Text="Berhasil toggle "..path
-        else
-            smooth(guiStatLbl,{TextColor3=T.red},0.15):Play()
-            guiStatLbl.Text="Gagal: "..tostring(err)
         end
-        task.delay(3,function() if guiStatLbl and guiStatLbl.Parent then guiStatLbl.Text="" end end)
-    end
 
-    for i,g in ipairs(GUI_LIST) do
-        local ci=g.path
-        mkActionCard(menuSF,g.name,"Open",Color3.fromRGB(50,120,200),i+2,function()
-            openGui(ci)
-        end)
-    end
-
-    -- Boss UI Section
-    mkSection(menuSF,"Open Boss UI",#GUI_LIST+4)
-
-    local bossUiHint=Instance.new("TextLabel",menuSF); bossUiHint.Size=UDim2.new(1,0,0,14)
-    bossUiHint.BackgroundTransparency=1; bossUiHint.Text="Format: [NamaBoss]BossUI"
-    bossUiHint.TextColor3=T.textDim; bossUiHint.Font=Enum.Font.Gotham; bossUiHint.TextSize=9
-    bossUiHint.TextXAlignment=Enum.TextXAlignment.Center; bossUiHint.LayoutOrder=#GUI_LIST+5; bossUiHint.ZIndex=5
-
-    -- Input row
-    local bossUiRow=Instance.new("Frame",menuSF); bossUiRow.Size=UDim2.new(1,0,0,36)
-    bossUiRow.BackgroundColor3=Color3.fromRGB(14,13,22); bossUiRow.BorderSizePixel=0
-    bossUiRow.LayoutOrder=#GUI_LIST+6; bossUiRow.ZIndex=5
-    Instance.new("UICorner",bossUiRow).CornerRadius=UDim.new(0,9)
-    local buStroke=Instance.new("UIStroke",bossUiRow); buStroke.Color=T.border; buStroke.Transparency=0.35; buStroke.Thickness=0.9
-
-    local bossUiInput=Instance.new("TextBox",bossUiRow)
-    bossUiInput.Size=UDim2.new(1,-68,1,-8); bossUiInput.Position=UDim2.new(0,10,0,4)
-    bossUiInput.BackgroundTransparency=1; bossUiInput.Text=""; bossUiInput.PlaceholderText="Nama boss, contoh: TheWorld"
-    bossUiInput.TextColor3=T.text; bossUiInput.PlaceholderColor3=T.textDim
-    bossUiInput.Font=Enum.Font.Gotham; bossUiInput.TextSize=10; bossUiInput.TextXAlignment=Enum.TextXAlignment.Left
-    bossUiInput.ClearTextOnFocus=false; bossUiInput.ZIndex=7
-
-    local bossUiOpenBtn=Instance.new("TextButton",bossUiRow)
-    bossUiOpenBtn.Size=UDim2.new(0,54,0,24); bossUiOpenBtn.Position=UDim2.new(1,-58,0.5,0)
-    bossUiOpenBtn.AnchorPoint=Vector2.new(0,0.5); bossUiOpenBtn.BackgroundColor3=Color3.fromRGB(50,120,200)
-    bossUiOpenBtn.Text="Open"; bossUiOpenBtn.TextColor3=T.white; bossUiOpenBtn.Font=Enum.Font.GothamBold
-    bossUiOpenBtn.TextSize=10; bossUiOpenBtn.BorderSizePixel=0; bossUiOpenBtn.ZIndex=8
-    Instance.new("UICorner",bossUiOpenBtn).CornerRadius=UDim.new(0,6)
-
-    local bossUiStatLbl=Instance.new("TextLabel",menuSF); bossUiStatLbl.Size=UDim2.new(1,0,0,14)
-    bossUiStatLbl.BackgroundTransparency=1; bossUiStatLbl.Text=""; bossUiStatLbl.TextColor3=T.textDim
-    bossUiStatLbl.Font=Enum.Font.Gotham; bossUiStatLbl.TextSize=9; bossUiStatLbl.TextXAlignment=Enum.TextXAlignment.Center
-    bossUiStatLbl.LayoutOrder=#GUI_LIST+7; bossUiStatLbl.ZIndex=5
-
-    bossUiInput.Focused:Connect(function() smooth(buStroke,{Color=T.accentGlow,Transparency=0},0.15):Play() end)
-    bossUiInput.FocusLost:Connect(function() smooth(buStroke,{Color=T.border,Transparency=0.35},0.15):Play() end)
-    bossUiOpenBtn.MouseButton1Down:Connect(function() smooth(bossUiOpenBtn,{Size=UDim2.new(0,48,0,20)},0.07):Play() end)
-    bossUiOpenBtn.MouseButton1Up:Connect(function() smooth(bossUiOpenBtn,{Size=UDim2.new(0,54,0,24)},0.1):Play() end)
-    bossUiOpenBtn.MouseButton1Click:Connect(function()
-        ripple(bossUiOpenBtn,bossUiOpenBtn.AbsoluteSize.X*0.5,bossUiOpenBtn.AbsoluteSize.Y*0.5,T.white)
-        local rawName=bossUiInput.Text:match("^%s*(.-)%s*$") -- trim
-        if rawName=="" then
-            bossUiStatLbl.Text="Masukkan nama boss dulu!"; smooth(bossUiStatLbl,{TextColor3=T.amber},0.1):Play(); return
+        -- Layer 4: Last resort — FindFirstChildWhichIsA recursive
+        if shownCount == 0 then
+            local f = ui:FindFirstChildWhichIsA("GuiObject", true)
+            if f then pcall(function() f.Visible = true end); shownCount = 1 end
         end
-        local path=rawName.."BossUI"
-        local ok,err=pcall(function()
-            local pg=LocalPlayer:FindFirstChild("PlayerGui")
-            if not pg then error("PlayerGui tidak ditemukan") end
-            local ui=pg:FindFirstChild(path)
-            if not ui then error("["..path.."] tidak ditemukan di PlayerGui") end
-            if ui:IsA("ScreenGui") then ui.Enabled=not ui.Enabled
-            else
-                local sg=ui:FindFirstChildOfClass("ScreenGui")
-                if sg then sg.Enabled=not sg.Enabled
-                else local fr=ui:FindFirstChildOfClass("Frame"); if fr then fr.Visible=not fr.Visible end end
+
+        -- Layer 5: Paksa re-show tiap frame selama 1 detik
+        -- (mengatasi game script yg langsung re-hide)
+        task.spawn(function()
+            for i = 1, 5 do
+                task.wait(0.2)
+                pcall(function()
+                    if ui:IsA("ScreenGui") then ui.Enabled = true end
+                    for _, child in ipairs(ui:GetChildren()) do
+                        if child:IsA("GuiObject") then child.Visible = true end
+                    end
+                end)
             end
         end)
-        if ok then
-            bossUiStatLbl.Text="Berhasil toggle "..path; smooth(bossUiStatLbl,{TextColor3=T.green},0.1):Play()
-        else
-            bossUiStatLbl.Text=tostring(err); smooth(bossUiStatLbl,{TextColor3=T.red},0.1):Play()
-        end
-        task.delay(4,function() if bossUiStatLbl and bossUiStatLbl.Parent then bossUiStatLbl.Text="" end end)
+
+        return shownCount
     end)
 
+    if ok then
+        setStatus("Berhasil membuka "..path, T.green)
+    else
+        setStatus(tostring(err):sub(1,80), T.red)
+    end
+    return ok
+end
+
+-- Status label global untuk menu
+local menuStatLbl = Instance.new("TextLabel", menuSF)
+menuStatLbl.Size = UDim2.new(1,0,0,14); menuStatLbl.BackgroundTransparency = 1
+menuStatLbl.Text = ""; menuStatLbl.TextColor3 = T.textDim
+menuStatLbl.Font = Enum.Font.Gotham; menuStatLbl.TextSize = 9
+menuStatLbl.TextXAlignment = Enum.TextXAlignment.Center
+menuStatLbl.LayoutOrder = 1; menuStatLbl.ZIndex = 5
+menuStatLbl.TextWrapped = true
+
+-- Helper card
+local function mkMenuCard(parent, labelText, btnText, btnCol, order, onClick)
+    local card = Instance.new("Frame", parent)
+    card.Size = UDim2.new(1,0,0,38); card.BackgroundColor3 = Color3.fromRGB(14,13,22)
+    card.BorderSizePixel = 0; card.LayoutOrder = order; card.ZIndex = 5
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0,9)
+    local cs = Instance.new("UIStroke", card); cs.Color = T.border; cs.Transparency = 0.45; cs.Thickness = 0.8
+    local dot = Instance.new("Frame", card)
+    dot.Size = UDim2.new(0,4,0,4); dot.Position = UDim2.new(0,8,0.5,0)
+    dot.AnchorPoint = Vector2.new(0,0.5); dot.BackgroundColor3 = T.accentDim
+    dot.BorderSizePixel = 0; Instance.new("UICorner", dot).CornerRadius = UDim.new(1,0)
+    local lbl = Instance.new("TextLabel", card)
+    lbl.Size = UDim2.new(1,-76,1,0); lbl.Position = UDim2.new(0,18,0,0)
+    lbl.BackgroundTransparency = 1; lbl.Text = labelText; lbl.TextColor3 = T.text
+    lbl.Font = Enum.Font.GothamBold; lbl.TextSize = 10
+    lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.ZIndex = 6; lbl.TextWrapped = false
+    local btn = Instance.new("TextButton", card)
+    btn.Size = UDim2.new(0,58,0,22); btn.Position = UDim2.new(1,-62,0.5,0)
+    btn.AnchorPoint = Vector2.new(0,0.5); btn.BackgroundColor3 = btnCol or T.accentSoft
+    btn.Text = btnText; btn.TextColor3 = T.white; btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10; btn.BorderSizePixel = 0; btn.ZIndex = 7
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,6)
+    card.MouseEnter:Connect(function()
+        smooth(card,{BackgroundColor3=Color3.fromRGB(18,17,30)},0.08):Play()
+        smooth(cs,{Color=T.accentGlow,Transparency=0.2},0.08):Play()
+        smooth(dot,{BackgroundColor3=T.accentGlow},0.08):Play()
+    end)
+    card.MouseLeave:Connect(function()
+        smooth(card,{BackgroundColor3=Color3.fromRGB(14,13,22)},0.08):Play()
+        smooth(cs,{Color=T.border,Transparency=0.45},0.08):Play()
+        smooth(dot,{BackgroundColor3=T.accentDim},0.08):Play()
+    end)
+    btn.MouseButton1Down:Connect(function() smooth(btn,{Size=UDim2.new(0,52,0,18)},0.07):Play() end)
+    btn.MouseButton1Up:Connect(function() smooth(btn,{Size=UDim2.new(0,58,0,22)},0.1):Play() end)
+    btn.MouseButton1Click:Connect(function()
+        ripple(btn, btn.AbsoluteSize.X*0.5, btn.AbsoluteSize.Y*0.5, T.white)
+        if onClick then onClick() end
+    end)
+    return card, btn
+end
+
+-- Open GUI List
+local GUI_LIST = {
+    {name="Enchant UI",     path="EnchantUI"},
+    {name="Tower Merchant", path="InfiniteTowerMerchantUI"},
+    {name="Power Reroll",   path="PowerRerollUI"},
+    {name="Reroll Stats",   path="RerollStatsUI"},
+    {name="Spec Passive",   path="SpecPassiveUI"},
+    {name="Trait Reroll",   path="TraitRerollUI"},
+    {name="Blessing",       path="BlessingUI"},
+}
+
+mkSection(menuSF, "Open GUI", 2)
+for i, g in ipairs(GUI_LIST) do
+    local ci = g.path
+    mkMenuCard(menuSF, g.name, "Open",
+        Color3.fromRGB(40,100,200), i+2,
+        function() tryOpenUI(ci, menuStatLbl) end
+    )
+end
+
+-- ── Scan GUI: debug helper ─────────────────────
+local scanOrder = #GUI_LIST + 4
+local scanCard, scanBtn = mkMenuCard(menuSF, "Scan PlayerGui", "Scan",
+    Color3.fromRGB(80,60,180), scanOrder, nil)
+scanBtn.MouseButton1Click:Connect(function()
+    ripple(scanBtn, scanBtn.AbsoluteSize.X*0.5, scanBtn.AbsoluteSize.Y*0.5, T.white)
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then menuStatLbl.Text = "PlayerGui tidak ditemukan"; return end
+    local names = {}
+    for _, c in ipairs(pg:GetChildren()) do
+        if c.Name:lower():find("ui",1,true) or c.Name:lower():find("menu",1,true)
+           or c.Name:lower():find("shop",1,true) or c.Name:lower():find("boss",1,true) then
+            table.insert(names, c.Name)
+        end
+    end
+    menuStatLbl.Text = #names>0 and table.concat(names,", "):sub(1,120) or "Tidak ada GUI ditemukan"
+    smooth(menuStatLbl, {TextColor3=T.accentGlow}, 0.15):Play()
+end)
+
+-- ── Open Boss UI ───────────────────────────────
+mkSection(menuSF, "Open Boss UI", scanOrder+1)
+
+local bossHintLbl = Instance.new("TextLabel", menuSF)
+bossHintLbl.Size = UDim2.new(1,0,0,12); bossHintLbl.BackgroundTransparency = 1
+bossHintLbl.Text = "Format: [NamaBoss]BossUI  contoh: TheWorld"
+bossHintLbl.TextColor3 = T.textDim; bossHintLbl.Font = Enum.Font.Gotham
+bossHintLbl.TextSize = 9; bossHintLbl.TextXAlignment = Enum.TextXAlignment.Center
+bossHintLbl.LayoutOrder = scanOrder+2; bossHintLbl.ZIndex = 5
+
+local bossInputRow = Instance.new("Frame", menuSF)
+bossInputRow.Size = UDim2.new(1,0,0,38); bossInputRow.BackgroundColor3 = Color3.fromRGB(14,13,22)
+bossInputRow.BorderSizePixel = 0; bossInputRow.LayoutOrder = scanOrder+3; bossInputRow.ZIndex = 5
+Instance.new("UICorner", bossInputRow).CornerRadius = UDim.new(0,9)
+local biStroke = Instance.new("UIStroke", bossInputRow)
+biStroke.Color = T.border; biStroke.Transparency = 0.35; biStroke.Thickness = 0.9
+
+local bossInput = Instance.new("TextBox", bossInputRow)
+bossInput.Size = UDim2.new(1,-74,1,-10); bossInput.Position = UDim2.new(0,10,0,5)
+bossInput.BackgroundTransparency = 1; bossInput.Text = ""
+bossInput.PlaceholderText = "Nama boss (contoh: TheWorld)"
+bossInput.TextColor3 = T.text; bossInput.PlaceholderColor3 = T.textDim
+bossInput.Font = Enum.Font.Gotham; bossInput.TextSize = 10
+bossInput.TextXAlignment = Enum.TextXAlignment.Left
+bossInput.ClearTextOnFocus = false; bossInput.ZIndex = 7
+
+local bossOpenBtn = Instance.new("TextButton", bossInputRow)
+bossOpenBtn.Size = UDim2.new(0,60,0,24); bossOpenBtn.Position = UDim2.new(1,-64,0.5,0)
+bossOpenBtn.AnchorPoint = Vector2.new(0,0.5); bossOpenBtn.BackgroundColor3 = Color3.fromRGB(40,100,200)
+bossOpenBtn.Text = "Open"; bossOpenBtn.TextColor3 = T.white
+bossOpenBtn.Font = Enum.Font.GothamBold; bossOpenBtn.TextSize = 10
+bossOpenBtn.BorderSizePixel = 0; bossOpenBtn.ZIndex = 8
+Instance.new("UICorner", bossOpenBtn).CornerRadius = UDim.new(0,6)
+
+bossInput.Focused:Connect(function() smooth(biStroke,{Color=T.accentGlow,Transparency=0},0.15):Play() end)
+bossInput.FocusLost:Connect(function() smooth(biStroke,{Color=T.border,Transparency=0.35},0.15):Play() end)
+bossOpenBtn.MouseButton1Down:Connect(function() smooth(bossOpenBtn,{Size=UDim2.new(0,54,0,20)},0.07):Play() end)
+bossOpenBtn.MouseButton1Up:Connect(function() smooth(bossOpenBtn,{Size=UDim2.new(0,60,0,24)},0.1):Play() end)
+bossOpenBtn.MouseButton1Click:Connect(function()
+    ripple(bossOpenBtn, bossOpenBtn.AbsoluteSize.X*0.5, bossOpenBtn.AbsoluteSize.Y*0.5, T.white)
+    local rawName = bossInput.Text:match("^%s*(.-)%s*$") or ""
+    if rawName == "" then
+        menuStatLbl.Text = "Masukkan nama boss dulu!"
+        smooth(menuStatLbl,{TextColor3=T.amber},0.1):Play()
+        return
+    end
+    -- Coba beberapa format nama
+    local attempts = {
+        rawName .. "BossUI",
+        rawName .. "Boss" .. "UI",
+        rawName:sub(1,1):upper() .. rawName:sub(2) .. "BossUI",
+    }
+    local success = false
+    for _, attempt in ipairs(attempts) do
+        if tryOpenUI(attempt, menuStatLbl) then
+            success = true; break
+        end
+    end
+    if not success then
+        -- Coba scan otomatis berdasarkan nama boss
+        local pg = LocalPlayer:FindFirstChild("PlayerGui")
+        if pg then
+            local low = rawName:lower()
+            for _, c in ipairs(pg:GetChildren()) do
+                if c.Name:lower():find(low,1,true) and c.Name:lower():find("boss",1,true) then
+                    tryOpenUI(c.Name, menuStatLbl); success = true; break
+                end
+            end
+        end
+        if not success then
+            menuStatLbl.Text = "["..rawName.."BossUI] tidak ditemukan. Coba Scan dulu."
+            smooth(menuStatLbl,{TextColor3=T.red},0.1):Play()
+        end
+    end
+end)
     -- ═══════════════════════════════════════════
     -- SETTINGS — subtab: Tampilan | Webhook
     -- ═══════════════════════════════════════════
