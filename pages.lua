@@ -273,14 +273,212 @@ local function buildFarmPage(farmPage, lib, LocalPlayer)
     mkToggle(skillGroup,"C",false,function(v) skillOn.C=v end,4)
     mkToggle(skillGroup,"V",false,function(v) skillOn.V=v end,5)
 
-    -- Right column
+    -- Right column: Farm sliders
     mkSection(rightF,"Adjust",1)
     local _,_,getHeight=mkSlider(rightF,"Height",0,50,0," st",nil,2)
     local _,_,getSpeed =mkSlider(rightF,"Speed",20,500,150," st/s",nil,3)
     local _,_,getTD    =mkSlider(rightF,"Jeda",1,10,1,"s",nil,4)
     local _,_,getLD    =mkSlider(rightF,"Loop Delay",0,10,3,"s",nil,5)
-    mkSection(rightF,"TP Loop",6)
-    local _,_,getTpDelay=mkSlider(rightF,"Jeda Titik",1,30,5,"s",nil,7)
+
+    -- ── TP Loop interval controls (right column) ──────────────────────────────
+    mkSection(rightF,"TP Loop — Interval",6)
+
+    -- Internal state: milliseconds stored as integer seconds (float precision via textbox)
+    local tpDelayA = 5   -- seconds at point A before moving to B
+    local tpDelayB = 5   -- seconds at point B before moving to A
+
+    -- Helper: compact interval row with slider + editable textbox showing exact value
+    local function mkIntervalRow(parent, label, initVal, order, onChange)
+        -- Card container
+        local card = Instance.new("Frame", parent)
+        card.Size             = UDim2.new(1,0,0,54)
+        card.BackgroundColor3 = Color3.fromRGB(14,13,22)
+        card.BorderSizePixel  = 0
+        card.LayoutOrder      = order
+        card.ZIndex           = 5
+        Instance.new("UICorner",card).CornerRadius = UDim.new(0,9)
+        local cs = Instance.new("UIStroke",card)
+        cs.Color = T.border; cs.Transparency = 0.45; cs.Thickness = 0.8
+
+        -- Label row
+        local topRow = Instance.new("Frame",card)
+        topRow.Size             = UDim2.new(1,0,0,22)
+        topRow.Position         = UDim2.new(0,0,0,0)
+        topRow.BackgroundTransparency = 1
+        topRow.BorderSizePixel  = 0
+
+        local lbl = Instance.new("TextLabel",topRow)
+        lbl.Size               = UDim2.new(0.6,0,1,0)
+        lbl.Position           = UDim2.new(0,10,0,0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text               = label
+        lbl.TextColor3         = T.text
+        lbl.Font               = Enum.Font.GothamBold
+        lbl.TextSize           = 11
+        lbl.TextXAlignment     = Enum.TextXAlignment.Left
+        lbl.ZIndex             = 6
+
+        -- Textbox for exact value input
+        local tbBg = Instance.new("Frame",topRow)
+        tbBg.Size             = UDim2.new(0,52,0,20)
+        tbBg.Position         = UDim2.new(1,-58,0.5,0)
+        tbBg.AnchorPoint      = Vector2.new(0,0.5)
+        tbBg.BackgroundColor3 = Color3.fromRGB(10,9,18)
+        tbBg.BorderSizePixel  = 0
+        tbBg.ZIndex           = 6
+        Instance.new("UICorner",tbBg).CornerRadius = UDim.new(0,6)
+        local tbStr = Instance.new("UIStroke",tbBg)
+        tbStr.Color = T.border; tbStr.Transparency = 0.3; tbStr.Thickness = 0.8
+
+        local tb = Instance.new("TextBox",tbBg)
+        tb.Size               = UDim2.new(1,-8,1,-4)
+        tb.Position           = UDim2.new(0,4,0,2)
+        tb.BackgroundTransparency = 1
+        tb.Text               = tostring(initVal)
+        tb.TextColor3         = T.accentGlow
+        tb.Font               = Enum.Font.GothamBold
+        tb.TextSize           = 11
+        tb.TextXAlignment     = Enum.TextXAlignment.Center
+        tb.ClearTextOnFocus   = false
+        tb.ZIndex             = 7
+        lib.regAccent("txtGlow",tb)
+
+        local sUnit = Instance.new("TextLabel",topRow)
+        sUnit.Size               = UDim2.new(0,12,1,0)
+        sUnit.Position           = UDim2.new(1,-14,0,0)
+        sUnit.BackgroundTransparency = 1
+        sUnit.Text               = "s"
+        sUnit.TextColor3         = T.textSub
+        sUnit.Font               = Enum.Font.Gotham
+        sUnit.TextSize           = 10
+        sUnit.ZIndex             = 6
+
+        -- Slider track
+        local trackBg = Instance.new("Frame",card)
+        trackBg.Size             = UDim2.new(1,-20,0,4)
+        trackBg.Position         = UDim2.new(0,10,0,36)
+        trackBg.BackgroundColor3 = T.border
+        trackBg.BorderSizePixel  = 0
+        trackBg.ZIndex           = 6
+        Instance.new("UICorner",trackBg).CornerRadius = UDim.new(1,0)
+
+        local fill = Instance.new("Frame",trackBg)
+        fill.Size             = UDim2.new(0,0,1,0)
+        fill.BackgroundColor3 = T.accent
+        fill.BorderSizePixel  = 0
+        fill.ZIndex           = 7
+        Instance.new("UICorner",fill).CornerRadius = UDim.new(1,0)
+        local fg = Instance.new("UIGradient",fill)
+        fg.Color = ColorSequence.new{ColorSequenceKeypoint.new(0,T.accentGlow),ColorSequenceKeypoint.new(1,T.accent)}
+
+        local knob = Instance.new("Frame",trackBg)
+        knob.Size             = UDim2.new(0,12,0,12)
+        knob.AnchorPoint      = Vector2.new(0.5,0.5)
+        knob.Position         = UDim2.new(0,0,0.5,0)
+        knob.BackgroundColor3 = T.white
+        knob.BorderSizePixel  = 0
+        knob.ZIndex           = 8
+        Instance.new("UICorner",knob).CornerRadius = UDim.new(1,0)
+        local ks = Instance.new("UIStroke",knob)
+        ks.Color = T.accent; ks.Thickness = 1.5; lib.regAccent("stAccent",ks)
+
+        -- Min=1, Max=60 seconds
+        local MIN,MAX = 1,60
+        local curVal  = math.clamp(initVal, MIN, MAX)
+
+        local function applyVal(v, fromSlider)
+            curVal = math.clamp(math.floor(v+0.5), MIN, MAX)
+            local ratio = (curVal-MIN)/(MAX-MIN)
+            smooth(fill,  {Size=UDim2.new(ratio,0,1,0)},0.08):Play()
+            smooth(knob,  {Position=UDim2.new(ratio,0,0.5,0)},0.08):Play()
+            if not fromSlider then
+                -- sync textbox only when coming from slider
+                tb.Text = tostring(curVal)
+            end
+            if onChange then onChange(curVal) end
+        end
+
+        applyVal(curVal, false)
+
+        -- Drag slider
+        local dragging = false
+        local UIS2 = game:GetService("UserInputService")
+        local slHit = Instance.new("TextButton",card)
+        slHit.Size               = UDim2.new(1,-16,0,22)
+        slHit.Position           = UDim2.new(0,8,0,28)
+        slHit.BackgroundTransparency = 1
+        slHit.Text               = ""
+        slHit.ZIndex             = 12
+
+        slHit.MouseButton1Down:Connect(function()
+            dragging = true
+            smooth(knob,{Size=UDim2.new(0,16,0,16)},0.15):Play()
+        end)
+        UIS2.InputChanged:Connect(function(i)
+            if dragging and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
+                if trackBg and trackBg.Parent then
+                    local ratio = math.clamp((i.Position.X-trackBg.AbsolutePosition.X)/trackBg.AbsoluteSize.X,0,1)
+                    local newV  = MIN + ratio*(MAX-MIN)
+                    curVal = math.clamp(math.floor(newV+0.5), MIN, MAX)
+                    tb.Text = tostring(curVal)
+                    applyVal(curVal, true)
+                end
+            end
+        end)
+        UIS2.InputEnded:Connect(function(i)
+            if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+                if dragging then dragging=false; smooth(knob,{Size=UDim2.new(0,12,0,12)},0.18):Play() end
+            end
+        end)
+
+        -- Textbox: validate and sync on FocusLost
+        tb.Focused:Connect(function()
+            smooth(tbStr,{Color=T.accentGlow,Transparency=0.0},0.15):Play()
+            smooth(cs,{Color=T.accentGlow,Transparency=0.2},0.15):Play()
+        end)
+        tb.FocusLost:Connect(function()
+            smooth(tbStr,{Color=T.border,Transparency=0.3},0.15):Play()
+            smooth(cs,{Color=T.border,Transparency=0.45},0.15):Play()
+            local raw = tonumber(tb.Text)
+            if raw then
+                applyVal(raw, false)
+                tb.Text = tostring(curVal)
+            else
+                tb.Text = tostring(curVal) -- revert invalid input
+            end
+        end)
+
+        -- +/- quick-adjust buttons
+        local function mkAdjBtn(parent2, sym, xOff, delta)
+            local b = Instance.new("TextButton",topRow)
+            b.Size             = UDim2.new(0,18,0,18)
+            b.Position         = UDim2.new(1,xOff,0.5,0)
+            b.AnchorPoint      = Vector2.new(0,0.5)
+            b.BackgroundColor3 = Color3.fromRGB(22,20,38)
+            b.Text             = sym
+            b.TextColor3       = T.textSub
+            b.Font             = Enum.Font.GothamBold
+            b.TextSize         = 12
+            b.BorderSizePixel  = 0
+            b.ZIndex           = 8
+            Instance.new("UICorner",b).CornerRadius = UDim.new(0,5)
+            b.MouseButton1Click:Connect(function()
+                applyVal(curVal + delta, false)
+                tb.Text = tostring(curVal)
+            end)
+        end
+        mkAdjBtn(topRow,"+",-74, 1)
+        mkAdjBtn(topRow,"-",-94,-1)
+
+        local function getVal() return curVal end
+        return getVal
+    end
+
+    local getTpDelayA = mkIntervalRow(rightF,"Interval A→B",5,7,function(v) tpDelayA=v end)
+    local getTpDelayB = mkIntervalRow(rightF,"Interval B→A",5,8,function(v) tpDelayB=v end)
+
+    -- Unified getter (kept for backward compat, returns A delay)
+    local function getTpDelay() return tpDelayA end
 
     return {
         getIsland=getIsland, getFarmMode=getFarmMode,
@@ -292,7 +490,9 @@ local function buildFarmPage(farmPage, lib, LocalPlayer)
         getSkillOn=function(k) return skillOn[k] end,
         getTpLoopOn=getTpLoopOn, setTpLoopOnOff=setTpLoopOnOff,
         setTpLoopCallback=setTpLoopCallback, getTpLoopCoordA=getTpLoopCoordA,
-        getTpLoopCoordB=getTpLoopCoordB, getTpDelay=getTpDelay, setTpLoopStat=setTpLoopStat,
+        getTpLoopCoordB=getTpLoopCoordB, getTpDelay=getTpDelay,
+        getTpDelayA=getTpDelayA, getTpDelayB=getTpDelayB,
+        setTpLoopStat=setTpLoopStat,
     }
 end
 
@@ -697,6 +897,8 @@ return function(lib, sideData, contentArea, bgF, root, rootCorner, rootStroke, r
         getTpLoopCoordA   = farmRefs.getTpLoopCoordA,
         getTpLoopCoordB   = farmRefs.getTpLoopCoordB,
         getTpDelay        = farmRefs.getTpDelay,
+        getTpDelayA       = farmRefs.getTpDelayA,
+        getTpDelayB       = farmRefs.getTpDelayB,
         setTpLoopStat     = farmRefs.setTpLoopStat,
         -- Boss
         getSelectedBoss         = bossRefs.getSelectedBoss,
