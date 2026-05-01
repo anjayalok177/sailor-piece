@@ -564,16 +564,22 @@ return function(refs,T)
         isRunningTpLoop=true
         if not tpLoopOn then isRunningTpLoop=false; refs.setTpLoopOnOff(false); return end
         refs.setTpLoopStat("Aktif...", T.green)
-        local step=0  -- 0=A, 1=B
+        local step=0  -- 0=going to A, 1=going to B
         while tpLoopOn do
             local coordA=Vector3.new(-203.174,22.093,-420.721)
             local coordB=Vector3.new(-309.006,-3.667,-148.328)
             pcall(function() coordA=refs.getTpLoopCoordA() end)
             pcall(function() coordB=refs.getTpLoopCoordB() end)
-            local delay=5
-            pcall(function() delay=refs.getTpDelay() end)
-            local target=(step==0) and coordA or coordB
-            local label=(step==0) and "A" or "B"
+
+            -- Per-point delay: A uses getTpDelayA, B uses getTpDelayB
+            local delayA=5; local delayB=5
+            pcall(function() delayA=refs.getTpDelayA() end)
+            pcall(function() delayB=refs.getTpDelayB() end)
+
+            local target  = (step==0) and coordA or coordB
+            local label   = (step==0) and "A" or "B"
+            local waitSec = (step==0) and delayA or delayB
+
             local rr=getRoot()
             if rr then
                 refs.setTpLoopStat("TP ke Titik "..label, T.amber)
@@ -581,10 +587,18 @@ return function(refs,T)
                 if flyBP then flyBP.Position=target end
             end
             step=1-step
-            local endT=tick()+delay
+
+            -- Countdown display with live-updating interval
+            local endT=tick()+waitSec
             while tick()<endT and tpLoopOn do
+                -- Re-read delay in case user changes it mid-countdown
+                local currentDelay=5
+                pcall(function() currentDelay=(label=="A") and refs.getTpDelayA() or refs.getTpDelayB() end)
+                -- If user extended the interval, update endT
+                local newEndT = tick() + currentDelay
+                if newEndT > endT + 0.5 then endT = newEndT end
                 local rem=math.max(0,math.floor(endT-tick()))
-                refs.setTpLoopStat("Titik "..label.." — "..rem.."s", T.accentGlow)
+                refs.setTpLoopStat("Titik "..label.." — "..rem.."s ("..currentDelay.."s)", T.accentGlow)
                 task.wait(0.5)
             end
         end
